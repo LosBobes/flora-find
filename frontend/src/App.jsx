@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { APIProvider } from '@vis.gl/react-google-maps'
 import { api } from './api'
 import { useAuth } from './AuthContext'
-import { fruitEmoji } from './fruitIcons'
+import { PLANT_CATEGORIES, fruitEmoji, plantEmoji } from './fruitIcons'
 import { formatSeason } from './seasons'
 import AuthModal from './components/AuthModal'
 import MapView from './components/MapView'
@@ -23,6 +23,7 @@ export default function App() {
   const [trees, setTrees] = useState([])
   const [fruitTypes, setFruitTypes] = useState([])
   const [searchText, setSearchText] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const [fruitFilter, setFruitFilter] = useState('')
   const [ripeNow, setRipeNow] = useState(false)
   const [nearMe, setNearMe] = useState(null) // {lat, lng} | null
@@ -42,6 +43,7 @@ export default function App() {
   const refreshTrees = useCallback(async () => {
     const params = {
       q: searchText || undefined,
+      category: categoryFilter || undefined,
       fruit_type: fruitFilter || undefined,
       ripe_now: ripeNow || undefined,
     }
@@ -64,12 +66,17 @@ export default function App() {
     } catch (err) {
       console.error('Failed to load trees', err)
     }
-  }, [searchText, fruitFilter, ripeNow, nearMe])
+  }, [searchText, categoryFilter, fruitFilter, ripeNow, nearMe])
 
   useEffect(() => {
     refreshTrees()
-    api.fruitTypes().then(setFruitTypes).catch(() => {})
   }, [refreshTrees])
+
+  useEffect(() => {
+    // Scope the type dropdown to the selected category (e.g. only fruits).
+    api.fruitTypes(categoryFilter || undefined).then(setFruitTypes).catch(() => {})
+    setFruitFilter('')
+  }, [categoryFilter])
 
   const handleBoundsChanged = useCallback(
     (bounds) => {
@@ -119,14 +126,14 @@ export default function App() {
     setSelectedTree(created)
     showNotice(message)
     refreshTrees()
-    api.fruitTypes().then(setFruitTypes).catch(() => {})
+    api.fruitTypes(categoryFilter || undefined).then(setFruitTypes).catch(() => {})
   }
 
   async function handleUpdate(payload) {
     const updated = await api.updateTree(editingTree.id, payload)
     setEditingTree(null)
     setSelectedTree(updated)
-    showNotice('Tree updated ✓')
+    showNotice('Plant updated ✓')
     refreshTrees()
   }
 
@@ -135,7 +142,7 @@ export default function App() {
     try {
       await api.deleteTree(selectedTree.id)
       setSelectedTree(null)
-      showNotice('Tree deleted')
+      showNotice('Plant deleted')
       refreshTrees()
     } catch (err) {
       showNotice(err.message)
@@ -208,16 +215,28 @@ export default function App() {
           <div className="search-controls">
             <input
               className="search-input"
-              placeholder="Search trees, fruits, notes…"
+              placeholder="Search plants, fruits, notes…"
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
             />
             <select
               className="fruit-select"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+            >
+              <option value="">All categories</option>
+              {PLANT_CATEGORIES.map((entry) => (
+                <option key={entry.value} value={entry.value}>
+                  {entry.emoji} {entry.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="fruit-select"
               value={fruitFilter}
               onChange={(event) => setFruitFilter(event.target.value)}
             >
-              <option value="">All fruits</option>
+              <option value="">All types</option>
               {fruitTypes.map((fruit) => (
                 <option key={fruit} value={fruit}>
                   {fruitEmoji(fruit)} {fruit}
@@ -227,9 +246,9 @@ export default function App() {
             <button
               className={`btn btn-toggle${ripeNow ? ' active' : ''}`}
               onClick={() => setRipeNow((value) => !value)}
-              title="Only show trees currently in season"
+              title="Only show plants currently in season or bloom"
             >
-              🟢 Ripe now
+              🟢 In season
             </button>
           </div>
           <div className="user-controls">
@@ -259,10 +278,10 @@ export default function App() {
               className={`btn btn-add ${addMode ? 'btn-danger' : 'btn-primary'}`}
               onClick={addMode ? () => { setAddMode(false); setDraftPosition(null) } : startAddMode}
             >
-              {addMode ? '✕ Cancel adding' : '+ Register a tree'}
+              {addMode ? '✕ Cancel adding' : '+ Register a plant'}
             </button>
             {addMode && !draftPosition && (
-              <p className="hint">Click on the map where the tree stands.</p>
+              <p className="hint">Click on the map where the plant grows.</p>
             )}
             <button
               className={`btn btn-near-me${nearMe ? ' active' : ''}`}
@@ -272,7 +291,7 @@ export default function App() {
               {locating ? 'Locating…' : nearMe ? '✕ Leave near me' : '📍 Near me'}
             </button>
             <h2 className="sidebar-title">
-              {trees.length} tree{trees.length === 1 ? '' : 's'}
+              {trees.length} plant{trees.length === 1 ? '' : 's'}
               {nearMe
                 ? ` within ${NEAR_ME_RADIUS_KM} km`
                 : searchText
@@ -286,10 +305,11 @@ export default function App() {
                   className={selectedTree?.id === tree.id ? 'selected' : ''}
                   onClick={() => selectFromList(tree)}
                 >
-                  <span className="tree-list-emoji">{fruitEmoji(tree.fruit_type)}</span>
+                  <span className="tree-list-emoji">{plantEmoji(tree)}</span>
                   <span>
                     <strong>
                       {tree.name}
+                      {tree.hazard && <span title="Poisonous / hazardous"> ☠️</span>}
                       {tree.in_season && <span title="In season now"> 🟢</span>}
                       {tree.flagged_gone && <span title="Reported gone"> ⚠️</span>}
                     </strong>
@@ -305,7 +325,7 @@ export default function App() {
                 </li>
               ))}
               {trees.length === 0 && (
-                <li className="empty">Nothing here yet — register the first tree!</li>
+                <li className="empty">Nothing here yet — register the first plant!</li>
               )}
             </ul>
           </aside>

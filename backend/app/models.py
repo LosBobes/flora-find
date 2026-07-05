@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -25,6 +25,11 @@ class User(Base):
 # Trees reported gone by at least this many users get flagged in the UI.
 GONE_FLAG_THRESHOLD = 3
 
+# What kind of planting an entry is. "fruit_tree" keeps the original FloraFind
+# behaviour; the rest let the map hold ornamental trees, shrubs, flowerbeds,
+# vines and anything else growing in the neighbourhood.
+PLANT_CATEGORIES = ("fruit_tree", "tree", "shrub", "flowerbed", "vine", "other")
+
 
 def month_in_season(month: int, start: int | None, end: int | None) -> bool:
     if start is None or end is None:
@@ -40,7 +45,14 @@ class Tree(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str] = mapped_column(
+        String(20), default="fruit_tree", server_default="fruit_tree", index=True
+    )
+    # Generic type label: the fruit for fruit trees ("Cherry"), otherwise what
+    # the plant is ("Oak", "Tulips", "Poison ivy").
     fruit_type: Mapped[str] = mapped_column(String(80), index=True)
+    # Poisonous or otherwise dangerous to touch/eat (poison ivy, giant hogweed…).
+    hazard: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", index=True)
     species: Mapped[str | None] = mapped_column(String(120), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     season_start: Mapped[int | None] = mapped_column(Integer, nullable=True)

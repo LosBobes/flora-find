@@ -1,13 +1,24 @@
 import { useMemo, useState } from 'react'
-import { COMMON_FRUITS } from '../fruitIcons'
+import { HAZARD_SUGGESTIONS, PLANT_CATEGORIES, TYPE_SUGGESTIONS } from '../fruitIcons'
 import { MONTHS } from '../seasons'
 
 const MAX_PHOTOS = 3
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp'
 
+const NAME_PLACEHOLDERS = {
+  fruit_tree: 'e.g. Old cherry by the school',
+  tree: 'e.g. Big oak in the park',
+  shrub: 'e.g. Lilac hedge on the corner',
+  flowerbed: 'e.g. Tulip bed by the fountain',
+  vine: 'e.g. Wisteria over the gate',
+  other: 'e.g. Herb patch by the path',
+}
+
 export default function TreeForm({ position, initial, onSubmit, onCancel }) {
+  const [category, setCategory] = useState(initial?.category ?? 'fruit_tree')
   const [name, setName] = useState(initial?.name ?? '')
   const [fruitType, setFruitType] = useState(initial?.fruit_type ?? '')
+  const [hazard, setHazard] = useState(initial?.hazard ?? false)
   const [species, setSpecies] = useState(initial?.species ?? '')
   const [seasonStart, setSeasonStart] = useState(initial?.season_start ?? '')
   const [seasonEnd, setSeasonEnd] = useState(initial?.season_end ?? '')
@@ -17,6 +28,10 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
   const [busy, setBusy] = useState(false)
 
   const photoPreviews = useMemo(() => photos.map((file) => URL.createObjectURL(file)), [photos])
+
+  const isFruit = category === 'fruit_tree'
+  const isFlowerbed = category === 'flowerbed'
+  const typeSuggestions = hazard ? HAZARD_SUGGESTIONS : (TYPE_SUGGESTIONS[category] ?? [])
 
   function handlePhotosChange(event) {
     const files = Array.from(event.target.files).slice(0, MAX_PHOTOS)
@@ -31,7 +46,9 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
       await onSubmit(
         {
           name,
+          category,
           fruit_type: fruitType,
+          hazard,
           species: species || null,
           season_start: seasonStart ? Number(seasonStart) : null,
           season_end: seasonEnd ? Number(seasonEnd) : null,
@@ -49,48 +66,67 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
 
   return (
     <form className="tree-form" onSubmit={handleSubmit}>
-      <h3>{initial ? 'Edit tree' : 'Register a tree'}</h3>
+      <h3>{initial ? 'Edit plant' : 'Register a plant'}</h3>
       <p className="coords">
         📍 {position.lat.toFixed(5)}, {position.lng.toFixed(5)}
       </p>
+      <label>
+        Category
+        <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          {PLANT_CATEGORIES.map((entry) => (
+            <option key={entry.value} value={entry.value}>
+              {entry.emoji} {entry.label}
+            </option>
+          ))}
+        </select>
+      </label>
       <label>
         Name
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="e.g. Old cherry by the school"
+          placeholder={NAME_PLACEHOLDERS[category]}
           maxLength={120}
           required
           autoFocus
         />
       </label>
       <label>
-        Fruit
+        {isFruit ? 'Fruit' : 'Plant type'}
         <input
           value={fruitType}
           onChange={(event) => setFruitType(event.target.value)}
-          list="fruit-suggestions"
-          placeholder="e.g. Cherry"
+          list="type-suggestions"
+          placeholder={isFruit ? 'e.g. Cherry' : 'e.g. ' + (typeSuggestions[0] ?? 'Oak')}
           maxLength={80}
           required
         />
-        <datalist id="fruit-suggestions">
-          {COMMON_FRUITS.map((fruit) => (
-            <option key={fruit} value={fruit} />
+        <datalist id="type-suggestions">
+          {typeSuggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
           ))}
         </datalist>
+      </label>
+      <label className="hazard-checkbox">
+        <input
+          type="checkbox"
+          checked={hazard}
+          onChange={(event) => setHazard(event.target.checked)}
+        />
+        ☠️ Poisonous or hazardous (e.g. poison ivy) — warn people
       </label>
       <label>
         Species <span className="optional">(optional)</span>
         <input
           value={species}
           onChange={(event) => setSpecies(event.target.value)}
-          placeholder="e.g. Prunus avium"
+          placeholder={isFruit ? 'e.g. Prunus avium' : 'e.g. Quercus robur'}
           maxLength={120}
         />
       </label>
       <label>
-        Season <span className="optional">(optional)</span>
+        {isFruit ? 'Season' : isFlowerbed ? 'Blooming season' : 'Season'}{' '}
+        <span className="optional">(optional)</span>
         <span className="season-selects">
           <select value={seasonStart} onChange={(event) => setSeasonStart(event.target.value)}>
             <option value="">From…</option>

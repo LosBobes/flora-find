@@ -146,6 +146,109 @@ def test_text_and_fruit_type_search():
     assert resp.json()[0]["fruit_type"] == "Cherry"
 
 
+def test_default_category_is_fruit_tree():
+    token = register()["access_token"]
+    tree = make_tree(token)
+    assert tree["category"] == "fruit_tree"
+    assert tree["hazard"] is False
+
+
+def test_create_non_fruit_plants_and_filter_by_category():
+    token = register()["access_token"]
+    make_tree(token)
+    make_tree(token, name="Big oak", category="tree", fruit_type="Oak")
+    make_tree(token, name="Tulip bed", category="flowerbed", fruit_type="Tulips")
+    make_tree(token, name="Lilac hedge", category="shrub", fruit_type="Lilac")
+
+    resp = client.get("/api/trees", params={"category": "flowerbed"})
+    assert [t["name"] for t in resp.json()] == ["Tulip bed"]
+
+    resp = client.get("/api/trees", params={"category": "fruit_tree"})
+    assert [t["name"] for t in resp.json()] == ["Old cherry by the school"]
+
+    resp = client.get("/api/trees")
+    assert len(resp.json()) == 4
+
+
+def test_invalid_category_rejected():
+    token = register()["access_token"]
+    resp = client.post(
+        "/api/trees",
+        json={"name": "X", "category": "spaceship", "fruit_type": "Oak", "lat": 0, "lng": 0},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 422
+
+
+def test_hazard_plants_and_filter():
+    token = register()["access_token"]
+    make_tree(token)
+    poison = make_tree(
+        token, name="Poison ivy patch", category="vine", fruit_type="Poison ivy", hazard=True
+    )
+    assert poison["hazard"] is True
+
+    resp = client.get("/api/trees", params={"hazard": "true"})
+    assert [t["name"] for t in resp.json()] == ["Poison ivy patch"]
+
+    resp = client.get("/api/trees", params={"hazard": "false"})
+    assert [t["name"] for t in resp.json()] == ["Old cherry by the school"]
+
+    resp = client.get("/api/trees")
+    assert len(resp.json()) == 2
+
+
+def test_update_category_and_hazard():
+    token = register()["access_token"]
+    tree = make_tree(token)
+    resp = client.put(
+        f"/api/trees/{tree['id']}",
+        json={"category": "shrub", "hazard": True},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["category"] == "shrub"
+    assert resp.json()["hazard"] is True
+
+
+def test_fruit_types_scoped_by_category():
+    token = register()["access_token"]
+    make_tree(token)
+    make_tree(token, name="Big oak", category="tree", fruit_type="Oak")
+
+    resp = client.get("/api/trees/fruit-types", params={"category": "tree"})
+    assert resp.json() == ["Oak"]
+    resp = client.get("/api/trees/fruit-types")
+    assert resp.json() == ["Cherry", "Oak"]
+
+
+def test_category_and_hazard_migration():
+    from sqlalchemy import create_engine, text
+
+    from app.migrations import run_migrations
+
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE trees (id INTEGER PRIMARY KEY, name TEXT, fruit_type TEXT, "
+                "season TEXT, lat FLOAT, lng FLOAT)"
+            )
+        )
+        conn.execute(
+            text("INSERT INTO trees (id, name, fruit_type, lat, lng) VALUES (1, 'A', 'Cherry', 0, 0)")
+        )
+
+    run_migrations(engine)
+
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT category, hazard FROM trees")).all()
+    assert rows == [("fruit_tree", 0)]
+
+    # Running again is a no-op.
+    run_migrations(engine)
+
+
 def test_bounding_box_search():
     token = register()["access_token"]
     make_tree(token, name="Belgrade cherry", lat=44.81, lng=20.46)

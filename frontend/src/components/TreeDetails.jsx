@@ -1,4 +1,4 @@
-import { fruitEmoji } from '../fruitIcons'
+import { categoryInfo, plantEmoji } from '../fruitIcons'
 import { formatSeason } from '../seasons'
 
 function daysAgo(dateString) {
@@ -11,22 +11,32 @@ function daysAgo(dateString) {
 export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onConfirm }) {
   const isOwner = currentUser && tree.owner?.id === currentUser.id
   const season = formatSeason(tree)
+  const isFruit = tree.category === 'fruit_tree' || !tree.category
   return (
     <div className="tree-details">
       <h3>
-        {fruitEmoji(tree.fruit_type)} {tree.name}
+        {plantEmoji(tree)} {tree.name}
       </h3>
+      {tree.hazard && (
+        <p className="hazard-flag">☠️ Poisonous / hazardous — do not touch or eat</p>
+      )}
       {tree.flagged_gone && (
         <p className="gone-flag">⚠️ Reported gone by {tree.gone_reports} people</p>
       )}
       <p className="detail-row">
-        <strong>Fruit:</strong> {tree.fruit_type}
+        <strong>{isFruit ? 'Fruit:' : 'Type:'}</strong> {tree.fruit_type}
         {tree.species ? ` (${tree.species})` : ''}
+        {!isFruit && <span className="category-tag"> · {categoryInfo(tree.category).label}</span>}
       </p>
       {season && (
         <p className="detail-row">
-          <strong>Season:</strong> {season}
-          {tree.in_season && <span className="badge-in-season"> 🟢 In season</span>}
+          <strong>{tree.category === 'flowerbed' ? 'Blooms:' : 'Season:'}</strong> {season}
+          {tree.in_season && (
+            <span className="badge-in-season">
+              {' '}
+              🟢 {tree.category === 'flowerbed' ? 'Blooming' : 'In season'}
+            </span>
+          )}
         </p>
       )}
       {tree.description && <p className="detail-row">{tree.description}</p>}

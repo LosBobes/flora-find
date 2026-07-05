@@ -37,6 +37,15 @@ def run_migrations(engine: Engine) -> None:
     backfill = "season" in columns and "season_start" not in columns
 
     with engine.begin() as conn:
+        if "category" not in columns:
+            conn.execute(
+                text(
+                    "ALTER TABLE trees ADD COLUMN category VARCHAR(20) "
+                    "NOT NULL DEFAULT 'fruit_tree'"
+                )
+            )
+        if "hazard" not in columns:
+            conn.execute(text("ALTER TABLE trees ADD COLUMN hazard BOOLEAN NOT NULL DEFAULT 0"))
         if "season_start" not in columns:
             conn.execute(text("ALTER TABLE trees ADD COLUMN season_start INTEGER"))
         if "season_end" not in columns:
