@@ -15,6 +15,7 @@ your neighborhood, and search for fruit near you — built on Google Maps.
 - Structured harvest seasons (start/end month) with a "🟢 Ripe now" filter and in-season badges
 - Free-text search across names, fruits, species and notes
 - Filter by fruit type; the list auto-follows the map viewport
+- "📍 Near me" — geolocate, center the map on you, and list trees within 5 km with distances
 - Radius search API (`?lat=&lng=&radius_km=`) with distance-sorted results
 - Community verification: "Still there / Gone" votes (one per user per tree), "last confirmed
   X days ago", and a ⚠️ flag once 3+ people report a tree gone

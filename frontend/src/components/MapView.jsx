@@ -33,6 +33,7 @@ export default function MapView({
   onMapClick,
   onBoundsChanged,
   panTarget,
+  userPosition,
   children,
 }) {
   return (
@@ -69,6 +70,12 @@ export default function MapView({
           </div>
         </AdvancedMarker>
       ))}
+
+      {userPosition && (
+        <AdvancedMarker position={userPosition} title="You are here" zIndex={999}>
+          <div className="user-dot" />
+        </AdvancedMarker>
+      )}
 
       {draftPosition && (
         <AdvancedMarker position={draftPosition} zIndex={1000}>

@@ -11,6 +11,12 @@ import TreeForm from './components/TreeForm'
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
+const NEAR_ME_RADIUS_KM = 5
+
+function formatDistance(km) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+}
+
 export default function App() {
   const { user, logout } = useAuth()
 
@@ -19,6 +25,8 @@ export default function App() {
   const [searchText, setSearchText] = useState('')
   const [fruitFilter, setFruitFilter] = useState('')
   const [ripeNow, setRipeNow] = useState(false)
+  const [nearMe, setNearMe] = useState(null) // {lat, lng} | null
+  const [locating, setLocating] = useState(false)
   const [selectedTree, setSelectedTree] = useState(null)
   const [panTarget, setPanTarget] = useState(null)
 
@@ -38,7 +46,12 @@ export default function App() {
       ripe_now: ripeNow || undefined,
     }
     const bounds = boundsRef.current
-    if (bounds && !searchText) {
+    if (nearMe) {
+      // Radius search from the user's position; results come back distance-sorted.
+      params.lat = nearMe.lat
+      params.lng = nearMe.lng
+      params.radius_km = NEAR_ME_RADIUS_KM
+    } else if (bounds && !searchText) {
       // Only constrain to the viewport when not doing a text search, so
       // searches can find trees anywhere.
       params.min_lat = bounds.south
@@ -51,7 +64,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to load trees', err)
     }
-  }, [searchText, fruitFilter, ripeNow])
+  }, [searchText, fruitFilter, ripeNow, nearMe])
 
   useEffect(() => {
     refreshTrees()
@@ -127,6 +140,31 @@ export default function App() {
     } catch (err) {
       showNotice(err.message)
     }
+  }
+
+  function handleNearMe() {
+    if (nearMe) {
+      setNearMe(null)
+      return
+    }
+    if (!navigator.geolocation) {
+      showNotice('Geolocation is not supported by this browser')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = { lat: position.coords.latitude, lng: position.coords.longitude }
+        setLocating(false)
+        setNearMe(location)
+        setPanTarget({ ...location, ts: Date.now() })
+      },
+      (err) => {
+        setLocating(false)
+        showNotice(`Could not get your location: ${err.message}`)
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
   }
 
   async function handleConfirm(status) {
@@ -226,9 +264,20 @@ export default function App() {
             {addMode && !draftPosition && (
               <p className="hint">Click on the map where the tree stands.</p>
             )}
+            <button
+              className={`btn btn-near-me${nearMe ? ' active' : ''}`}
+              onClick={handleNearMe}
+              disabled={locating}
+            >
+              {locating ? 'Locating…' : nearMe ? '✕ Leave near me' : '📍 Near me'}
+            </button>
             <h2 className="sidebar-title">
               {trees.length} tree{trees.length === 1 ? '' : 's'}
-              {searchText ? ' matching' : ' in view'}
+              {nearMe
+                ? ` within ${NEAR_ME_RADIUS_KM} km`
+                : searchText
+                  ? ' matching'
+                  : ' in view'}
             </h2>
             <ul className="tree-list">
               {trees.map((tree) => (
@@ -248,6 +297,9 @@ export default function App() {
                     <small>
                       {tree.fruit_type}
                       {formatSeason(tree) ? ` · ${formatSeason(tree)}` : ''}
+                      {typeof tree.distance_km === 'number' && (
+                        <span className="distance"> · {formatDistance(tree.distance_km)}</span>
+                      )}
                     </small>
                   </span>
                 </li>
@@ -268,6 +320,7 @@ export default function App() {
               onMapClick={handleMapClick}
               onBoundsChanged={handleBoundsChanged}
               panTarget={panTarget}
+              userPosition={nearMe}
             >
               {selectedTree && (
                 <TreeDetails
