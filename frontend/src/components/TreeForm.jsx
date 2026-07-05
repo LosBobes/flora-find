@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { COMMON_FRUITS } from '../fruitIcons'
 import { MONTHS } from '../seasons'
 
@@ -15,6 +15,8 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
   const [photos, setPhotos] = useState([])
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
+
+  const photoPreviews = useMemo(() => photos.map((file) => URL.createObjectURL(file)), [photos])
 
   function handlePhotosChange(event) {
     const files = Array.from(event.target.files).slice(0, MAX_PHOTOS)
@@ -124,11 +126,11 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
           <input type="file" accept={PHOTO_TYPES} multiple onChange={handlePhotosChange} />
           {photos.length > 0 && (
             <span className="photo-previews">
-              {photos.map((file) => (
+              {photos.map((file, index) => (
                 <img
                   key={file.name}
                   className="photo-preview"
-                  src={URL.createObjectURL(file)}
+                  src={photoPreviews[index]}
                   alt={file.name}
                 />
               ))}
