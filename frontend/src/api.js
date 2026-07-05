@@ -77,6 +77,13 @@ export const api = {
   updateTree: (id, tree) => request(`/api/trees/${id}`, { method: 'PUT', body: tree, auth: true }),
   deleteTree: (id) => request(`/api/trees/${id}`, { method: 'DELETE', auth: true }),
 
+  confirmTree: (treeId, status) =>
+    request(`/api/trees/${treeId}/confirmations`, {
+      method: 'POST',
+      body: { status },
+      auth: true,
+    }),
+
   uploadPhotos: (treeId, files) => {
     const form = new FormData()
     for (const file of files) form.append('files', file)

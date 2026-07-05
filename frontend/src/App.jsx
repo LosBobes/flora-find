@@ -129,6 +129,21 @@ export default function App() {
     }
   }
 
+  async function handleConfirm(status) {
+    if (!user) {
+      setAuthModal('login')
+      return
+    }
+    try {
+      const updated = await api.confirmTree(selectedTree.id, status)
+      setSelectedTree(updated)
+      showNotice(status === 'present' ? 'Thanks for confirming! 👍' : 'Noted — thanks for reporting.')
+      refreshTrees()
+    } catch (err) {
+      showNotice(err.message)
+    }
+  }
+
   function selectFromList(tree) {
     setSelectedTree(tree)
     setPanTarget({ lat: tree.lat, lng: tree.lng, ts: Date.now() })
@@ -227,6 +242,7 @@ export default function App() {
                     <strong>
                       {tree.name}
                       {tree.in_season && <span title="In season now"> 🟢</span>}
+                      {tree.flagged_gone && <span title="Reported gone"> ⚠️</span>}
                     </strong>
                     <br />
                     <small>
@@ -259,6 +275,7 @@ export default function App() {
                   currentUser={user}
                   onEdit={() => setEditingTree(selectedTree)}
                   onDelete={handleDelete}
+                  onConfirm={handleConfirm}
                 />
               )}
             </MapView>

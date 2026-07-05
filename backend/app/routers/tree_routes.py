@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import Tree, TreePhoto, User, utcnow
-from ..schemas import PhotoOut, TreeCreate, TreeOut, TreeUpdate
+from ..models import Tree, TreeConfirmation, TreePhoto, User, utcnow
+from ..schemas import ConfirmationCreate, PhotoOut, TreeCreate, TreeOut, TreeUpdate
 from ..storage import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_TREE, UPLOAD_DIR
 
 router = APIRouter(prefix="/api/trees", tags=["trees"])
@@ -39,7 +39,9 @@ def list_trees(
     limit: int = Query(default=500, ge=1, le=2000),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Tree).options(joinedload(Tree.owner), selectinload(Tree.photos))
+    query = db.query(Tree).options(
+        joinedload(Tree.owner), selectinload(Tree.photos), selectinload(Tree.confirmations)
+    )
 
     if q:
         like = f"%{q.lower()}%"
@@ -177,6 +179,33 @@ def delete_tree(
     db.commit()
     for filename in filenames:
         (UPLOAD_DIR / filename).unlink(missing_ok=True)
+
+
+@router.post("/{tree_id}/confirmations", response_model=TreeOut)
+def confirm_tree(
+    tree_id: int,
+    payload: ConfirmationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tree = db.get(Tree, tree_id)
+    if tree is None:
+        raise HTTPException(status_code=404, detail="Tree not found")
+
+    # One vote per user per tree: a new vote replaces the previous one.
+    confirmation = (
+        db.query(TreeConfirmation)
+        .filter(TreeConfirmation.tree_id == tree_id, TreeConfirmation.user_id == current_user.id)
+        .first()
+    )
+    if confirmation is None:
+        confirmation = TreeConfirmation(tree_id=tree_id, user_id=current_user.id)
+        db.add(confirmation)
+    confirmation.status = payload.status
+    confirmation.created_at = utcnow()
+    db.commit()
+    db.refresh(tree)
+    return tree
 
 
 @router.post("/{tree_id}/photos", response_model=list[PhotoOut], status_code=status.HTTP_201_CREATED)

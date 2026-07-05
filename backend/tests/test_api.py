@@ -249,6 +249,71 @@ def test_season_text_migration():
     run_migrations(engine)
 
 
+def confirm(token, tree_id, status_value):
+    return client.post(
+        f"/api/trees/{tree_id}/confirmations",
+        json={"status": status_value},
+        headers=auth_headers(token),
+    )
+
+
+def test_confirmation_requires_auth():
+    token = register()["access_token"]
+    tree = make_tree(token)
+    resp = client.post(f"/api/trees/{tree['id']}/confirmations", json={"status": "present"})
+    assert resp.status_code == 401
+
+
+def test_confirm_still_there_sets_last_confirmed():
+    token = register()["access_token"]
+    tree = make_tree(token)
+    assert tree["last_confirmed_at"] is None
+
+    resp = confirm(token, tree["id"], "present")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["last_confirmed_at"] is not None
+    assert data["gone_reports"] == 0
+    assert data["flagged_gone"] is False
+
+
+def test_one_vote_per_user_latest_wins():
+    token = register()["access_token"]
+    tree = make_tree(token)
+
+    confirm(token, tree["id"], "gone")
+    data = confirm(token, tree["id"], "gone").json()
+    assert data["gone_reports"] == 1  # voting twice doesn't double-count
+
+    data = confirm(token, tree["id"], "present").json()
+    assert data["gone_reports"] == 0  # switching the vote replaces it
+    assert data["last_confirmed_at"] is not None
+
+
+def test_flagged_gone_after_three_reports():
+    token = register()["access_token"]
+    tree = make_tree(token)
+
+    for i in range(3):
+        voter = register(f"voter{i}@example.com", f"voter{i}")["access_token"]
+        data = confirm(voter, tree["id"], "gone").json()
+    assert data["gone_reports"] == 3
+    assert data["flagged_gone"] is True
+
+    resp = client.get(f"/api/trees/{tree['id']}")
+    assert resp.json()["flagged_gone"] is True
+
+
+def test_confirm_missing_tree_404():
+    token = register()["access_token"]
+    resp = confirm(token, 999, "present")
+    assert resp.status_code == 404
+
+    tree = make_tree(token)
+    resp = confirm(token, tree["id"], "maybe")
+    assert resp.status_code == 422
+
+
 PNG_BYTES = bytes.fromhex(
     "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
     "0000000d4944415478da63f8ffff3f0300050001ffb7f5cc000000004945"

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -20,6 +20,10 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     trees: Mapped[list["Tree"]] = relationship(back_populates="owner")
+
+
+# Trees reported gone by at least this many users get flagged in the UI.
+GONE_FLAG_THRESHOLD = 3
 
 
 def month_in_season(month: int, start: int | None, end: int | None) -> bool:
@@ -55,6 +59,36 @@ class Tree(Base):
     photos: Mapped[list["TreePhoto"]] = relationship(
         back_populates="tree", cascade="all, delete-orphan"
     )
+    confirmations: Mapped[list["TreeConfirmation"]] = relationship(
+        back_populates="tree", cascade="all, delete-orphan"
+    )
+
+    @property
+    def last_confirmed_at(self) -> datetime | None:
+        dates = [c.created_at for c in self.confirmations if c.status == "present"]
+        return max(dates) if dates else None
+
+    @property
+    def gone_reports(self) -> int:
+        return sum(1 for c in self.confirmations if c.status == "gone")
+
+    @property
+    def flagged_gone(self) -> bool:
+        return self.gone_reports >= GONE_FLAG_THRESHOLD
+
+
+class TreeConfirmation(Base):
+    __tablename__ = "tree_confirmations"
+    __table_args__ = (UniqueConstraint("tree_id", "user_id", name="uq_confirmation_tree_user"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    status: Mapped[str] = mapped_column(String(10))  # "present" | "gone"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    tree_id: Mapped[int] = mapped_column(ForeignKey("trees.id"), index=True)
+    tree: Mapped[Tree] = relationship(back_populates="confirmations")
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user: Mapped[User] = relationship()
 
 
 class TreePhoto(Base):

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -63,6 +64,10 @@ class TreeUpdate(BaseModel):
     lng: float | None = Field(default=None, ge=-180, le=180)
 
 
+class ConfirmationCreate(BaseModel):
+    status: Literal["present", "gone"]
+
+
 class PhotoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -79,4 +84,7 @@ class TreeOut(TreeBase):
     owner: UserOut
     photos: list[PhotoOut] = []
     in_season: bool = False
+    last_confirmed_at: datetime | None = None
+    gone_reports: int = 0
+    flagged_gone: bool = False
     distance_km: float | None = None

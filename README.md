@@ -16,6 +16,8 @@ your neighborhood, and search for fruit near you — built on Google Maps.
 - Free-text search across names, fruits, species and notes
 - Filter by fruit type; the list auto-follows the map viewport
 - Radius search API (`?lat=&lng=&radius_km=`) with distance-sorted results
+- Community verification: "Still there / Gone" votes (one per user per tree), "last confirmed
+  X days ago", and a ⚠️ flag once 3+ people report a tree gone
 - Only the person who registered a tree can edit or delete it
 
 ## Getting started
@@ -76,6 +78,7 @@ Open http://localhost:5173 — the dev server proxies `/api/*` to the backend on
 | `POST` | `/api/trees` | ✅ | Register a tree |
 | `PUT` | `/api/trees/{id}` | ✅ owner | Update own tree |
 | `DELETE` | `/api/trees/{id}` | ✅ owner | Delete own tree |
+| `POST` | `/api/trees/{id}/confirmations` | ✅ | Vote `{"status": "present"\|"gone"}` — one vote per user, latest wins |
 | `POST` | `/api/trees/{id}/photos` | ✅ owner | Upload photos (multipart `files`, max 3/tree, JPEG/PNG/WebP ≤ 5 MB) |
 | `DELETE` | `/api/trees/{id}/photos/{photo_id}` | ✅ owner | Remove a photo |
 
