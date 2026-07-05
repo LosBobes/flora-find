@@ -243,6 +243,20 @@ body,
   font-size: 34px;
 }
 
+/* Hazardous plants (poison ivy & co.) get an unmissable red ring. */
+.fruit-marker.hazard {
+  background: #fdecea;
+  border: 2px solid #c62828;
+  border-radius: 50%;
+  padding: 3px;
+  font-size: 20px;
+  box-shadow: 0 0 0 2px rgba(198, 40, 40, 0.25);
+}
+
+.fruit-marker.hazard.selected {
+  font-size: 28px;
+}
+
 .user-dot {
   width: 16px;
   height: 16px;
@@ -315,6 +329,20 @@ body,
   font-weight: 600;
 }
 
+.hazard-flag {
+  margin: 4px 0;
+  padding: 6px 8px;
+  background: #a51f1f;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.category-tag {
+  color: #6b7a6b;
+}
+
 /* ---------- Photos ---------- */
 .photo-gallery {
   display: flex;
@@ -377,7 +405,8 @@ body,
 
 .modal input,
 .tree-form input,
-.tree-form textarea {
+.tree-form textarea,
+.tree-form > label > select {
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -386,6 +415,13 @@ body,
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
+}
+
+.tree-form .hazard-checkbox input {
+  display: inline-block;
+  width: auto;
+  margin: 0 6px 0 0;
+  vertical-align: middle;
 }
 
 .optional {

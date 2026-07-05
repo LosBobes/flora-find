@@ -72,7 +72,8 @@ export const api = {
     const suffix = qs.toString() ? `?${qs}` : ''
     return request(`/api/trees${suffix}`)
   },
-  fruitTypes: () => request('/api/trees/fruit-types'),
+  fruitTypes: (category) =>
+    request(`/api/trees/fruit-types${category ? `?category=${encodeURIComponent(category)}` : ''}`),
   createTree: (tree) => request('/api/trees', { method: 'POST', body: tree, auth: true }),
   updateTree: (id, tree) => request(`/api/trees/${id}`, { method: 'PUT', body: tree, auth: true }),
   deleteTree: (id) => request(`/api/trees/${id}`, { method: 'DELETE', auth: true }),

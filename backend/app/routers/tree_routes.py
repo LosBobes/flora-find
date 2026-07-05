@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Tree, TreeConfirmation, TreePhoto, User, utcnow
-from ..schemas import ConfirmationCreate, PhotoOut, TreeCreate, TreeOut, TreeUpdate
+from ..schemas import ConfirmationCreate, PhotoOut, PlantCategory, TreeCreate, TreeOut, TreeUpdate
 from ..storage import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_TREE, UPLOAD_DIR
 
 router = APIRouter(prefix="/api/trees", tags=["trees"])
@@ -28,6 +28,10 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 def list_trees(
     q: str | None = Query(default=None, description="Free-text search over name, fruit type, species, description"),
     fruit_type: str | None = Query(default=None),
+    category: PlantCategory | None = Query(default=None),
+    hazard: bool | None = Query(
+        default=None, description="true = only hazardous plants, false = exclude them"
+    ),
     ripe_now: bool = Query(default=False, description="Only trees currently in season"),
     min_lat: float | None = Query(default=None, ge=-90, le=90),
     max_lat: float | None = Query(default=None, ge=-90, le=90),
@@ -55,6 +59,10 @@ def list_trees(
         )
     if fruit_type:
         query = query.filter(func.lower(Tree.fruit_type) == fruit_type.lower())
+    if category:
+        query = query.filter(Tree.category == category)
+    if hazard is not None:
+        query = query.filter(Tree.hazard == hazard)
 
     if ripe_now:
         month = utcnow().month
@@ -113,8 +121,11 @@ def list_trees(
 
 
 @router.get("/fruit-types", response_model=list[str])
-def fruit_types(db: Session = Depends(get_db)):
-    rows = db.query(Tree.fruit_type).distinct().order_by(Tree.fruit_type).all()
+def fruit_types(category: PlantCategory | None = Query(default=None), db: Session = Depends(get_db)):
+    query = db.query(Tree.fruit_type).distinct()
+    if category:
+        query = query.filter(Tree.category == category)
+    rows = query.order_by(Tree.fruit_type).all()
     return [row[0] for row in rows]
 
 

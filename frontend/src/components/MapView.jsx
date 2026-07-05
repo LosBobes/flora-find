@@ -6,7 +6,7 @@ import {
   Pin,
   useMap,
 } from '@vis.gl/react-google-maps'
-import { fruitEmoji } from '../fruitIcons'
+import { plantEmoji } from '../fruitIcons'
 
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID'
 
@@ -62,11 +62,15 @@ export default function MapView({
         <AdvancedMarker
           key={tree.id}
           position={{ lat: tree.lat, lng: tree.lng }}
-          title={`${tree.name} (${tree.fruit_type})`}
+          title={`${tree.name} (${tree.fruit_type})${tree.hazard ? ' — hazardous!' : ''}`}
           onClick={() => onSelectTree(tree)}
         >
-          <div className={`fruit-marker${selectedTree?.id === tree.id ? ' selected' : ''}`}>
-            {fruitEmoji(tree.fruit_type)}
+          <div
+            className={`fruit-marker${selectedTree?.id === tree.id ? ' selected' : ''}${
+              tree.hazard ? ' hazard' : ''
+            }`}
+          >
+            {plantEmoji(tree)}
           </div>
         </AdvancedMarker>
       ))}

@@ -1,7 +1,8 @@
 # 🌳 FloraFind
 
-A community map of fruit trees. Register apple, cherry, fig (or any other) trees you find in
-your neighborhood, and search for fruit near you — built on Google Maps.
+A community map of neighborhood plants. Register fruit trees, ornamental trees, shrubs,
+flowerbeds and vines you find around you, flag hazards like poison ivy, and search for
+fruit (or flowers) near you — built on Google Maps.
 
 - **Backend:** FastAPI + SQLAlchemy + SQLite (swappable via `FLORA_DATABASE_URL`)
 - **Frontend:** React (Vite) + [`@vis.gl/react-google-maps`](https://visgl.github.io/react-google-maps/)
@@ -9,12 +10,15 @@ your neighborhood, and search for fruit near you — built on Google Maps.
 
 ## Features
 
-- Interactive Google Map with emoji fruit markers and info windows
-- Register a tree by clicking its exact spot on the map (name, fruit, species, season, notes)
-- Attach up to 3 photos per tree — thumbnails show in the info window
-- Structured harvest seasons (start/end month) with a "🟢 Ripe now" filter and in-season badges
-- Free-text search across names, fruits, species and notes
-- Filter by fruit type; the list auto-follows the map viewport
+- Interactive Google Map with emoji plant markers and info windows
+- Register any plant by clicking its exact spot on the map (name, type, species, season, notes)
+- Plant categories: fruit trees, general trees, shrubs/bushes, flowerbeds, vines and more
+- ☠️ Hazard flag for poisonous or dangerous plants (poison ivy, giant hogweed…) with
+  red warning markers and a prominent banner — filterable via `?hazard=true|false`
+- Attach up to 3 photos per plant — thumbnails show in the info window
+- Structured harvest/blooming seasons (start/end month) with a "🟢 In season" filter and badges
+- Free-text search across names, types, species and notes
+- Filter by category and type; the list auto-follows the map viewport
 - "📍 Near me" — geolocate, center the map on you, and list trees within 5 km with distances
 - Radius search API (`?lat=&lng=&radius_km=`) with distance-sorted results
 - Community verification: "Still there / Gone" votes (one per user per tree), "last confirmed

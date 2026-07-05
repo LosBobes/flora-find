@@ -29,9 +29,19 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
+PlantCategory = Literal["fruit_tree", "tree", "shrub", "flowerbed", "vine", "other"]
+
+
 class TreeBase(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    fruit_type: str = Field(min_length=1, max_length=80)
+    category: PlantCategory = "fruit_tree"
+    fruit_type: str = Field(
+        min_length=1,
+        max_length=80,
+        description="Type label: the fruit for fruit trees, otherwise what the plant is "
+        "(e.g. Oak, Tulips, Poison ivy)",
+    )
+    hazard: bool = Field(default=False, description="Poisonous or dangerous to touch/eat")
     species: str | None = Field(default=None, max_length=120)
     description: str | None = Field(default=None, max_length=2000)
     season_start: int | None = Field(default=None, ge=1, le=12, description="First month in season (1-12)")
@@ -55,7 +65,9 @@ class TreeCreate(TreeBase):
 
 class TreeUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
+    category: PlantCategory | None = None
     fruit_type: str | None = Field(default=None, min_length=1, max_length=80)
+    hazard: bool | None = None
     species: str | None = Field(default=None, max_length=120)
     description: str | None = Field(default=None, max_length=2000)
     season_start: int | None = Field(default=None, ge=1, le=12)
