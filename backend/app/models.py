@@ -37,3 +37,23 @@ class Tree(Base):
 
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     owner: Mapped[User] = relationship(back_populates="trees")
+
+    photos: Mapped[list["TreePhoto"]] = relationship(
+        back_populates="tree", cascade="all, delete-orphan"
+    )
+
+
+class TreePhoto(Base):
+    __tablename__ = "tree_photos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    filename: Mapped[str] = mapped_column(String(255), unique=True)
+    content_type: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    tree_id: Mapped[int] = mapped_column(ForeignKey("trees.id"), index=True)
+    tree: Mapped[Tree] = relationship(back_populates="photos")
+
+    @property
+    def url(self) -> str:
+        return f"/uploads/{self.filename}"

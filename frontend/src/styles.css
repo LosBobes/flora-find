@@ -248,6 +248,35 @@ body,
   margin-top: 6px;
 }
 
+/* ---------- Photos ---------- */
+.photo-gallery {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.photo-thumb {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e0e6e0;
+}
+
+.photo-previews {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.photo-preview {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #c8d6c8;
+}
+
 /* ---------- Forms & modals ---------- */
 .modal-backdrop {
   position: fixed;

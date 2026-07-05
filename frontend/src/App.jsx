@@ -85,12 +85,20 @@ export default function App() {
     }
   }
 
-  async function handleCreate(payload) {
+  async function handleCreate(payload, photos) {
     const created = await api.createTree(payload)
+    let message = `Registered “${created.name}” 🌱`
+    if (photos?.length) {
+      try {
+        created.photos = await api.uploadPhotos(created.id, photos)
+      } catch (err) {
+        message = `Tree saved, but photo upload failed: ${err.message}`
+      }
+    }
     setAddMode(false)
     setDraftPosition(null)
     setSelectedTree(created)
-    showNotice(`Registered “${created.name}” 🌱`)
+    showNotice(message)
     refreshTrees()
     api.fruitTypes().then(setFruitTypes).catch(() => {})
   }

@@ -52,10 +52,19 @@ class TreeUpdate(BaseModel):
     lng: float | None = Field(default=None, ge=-180, le=180)
 
 
+class PhotoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    url: str
+    content_type: str
+
+
 class TreeOut(TreeBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     created_at: datetime
     owner: UserOut
+    photos: list[PhotoOut] = []
     distance_km: float | None = None

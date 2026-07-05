@@ -2,9 +2,11 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
 from .routers import auth_routes, tree_routes
+from .storage import UPLOAD_DIR
 
 Base.metadata.create_all(bind=engine)
 
@@ -28,6 +30,8 @@ app.add_middleware(
 
 app.include_router(auth_routes.router)
 app.include_router(tree_routes.router)
+
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 @app.get("/api/health")

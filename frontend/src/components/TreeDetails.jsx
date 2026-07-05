@@ -17,6 +17,15 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete }) {
         </p>
       )}
       {tree.description && <p className="detail-row">{tree.description}</p>}
+      {tree.photos?.length > 0 && (
+        <div className="photo-gallery">
+          {tree.photos.map((photo) => (
+            <a key={photo.id} href={photo.url} target="_blank" rel="noreferrer">
+              <img className="photo-thumb" src={photo.url} alt={`Photo of ${tree.name}`} />
+            </a>
+          ))}
+        </div>
+      )}
       {typeof tree.distance_km === 'number' && (
         <p className="detail-row">
           <strong>Distance:</strong> {tree.distance_km.toFixed(1)} km

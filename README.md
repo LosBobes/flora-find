@@ -11,6 +11,7 @@ your neighborhood, and search for fruit near you — built on Google Maps.
 
 - Interactive Google Map with emoji fruit markers and info windows
 - Register a tree by clicking its exact spot on the map (name, fruit, species, season, notes)
+- Attach up to 3 photos per tree — thumbnails show in the info window
 - Free-text search across names, fruits, species and notes
 - Filter by fruit type; the list auto-follows the map viewport
 - Radius search API (`?lat=&lng=&radius_km=`) with distance-sorted results
@@ -57,6 +58,7 @@ Open http://localhost:5173 — the dev server proxies `/api/*` to the backend on
 | `VITE_GOOGLE_MAPS_API_KEY` | frontend `.env` | — | Google Maps JS API key (required) |
 | `VITE_GOOGLE_MAPS_MAP_ID` | frontend `.env` | `DEMO_MAP_ID` | Map ID for Advanced Markers |
 | `FLORA_DATABASE_URL` | backend env | `sqlite:///./florafind.db` | SQLAlchemy database URL |
+| `FLORA_UPLOAD_DIR` | backend env | `./uploads` | Directory for uploaded tree photos |
 | `FLORA_JWT_SECRET` | backend env | dev value | JWT signing secret — **set in production** |
 | `FLORA_CORS_ORIGINS` | backend env | `http://localhost:5173,...` | Comma-separated allowed origins |
 
@@ -73,6 +75,10 @@ Open http://localhost:5173 — the dev server proxies `/api/*` to the backend on
 | `POST` | `/api/trees` | ✅ | Register a tree |
 | `PUT` | `/api/trees/{id}` | ✅ owner | Update own tree |
 | `DELETE` | `/api/trees/{id}` | ✅ owner | Delete own tree |
+| `POST` | `/api/trees/{id}/photos` | ✅ owner | Upload photos (multipart `files`, max 3/tree, JPEG/PNG/WebP ≤ 5 MB) |
+| `DELETE` | `/api/trees/{id}/photos/{photo_id}` | ✅ owner | Remove a photo |
+
+Uploaded photos are served from `/uploads/…`.
 
 ## Tests
 
