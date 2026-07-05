@@ -108,6 +108,12 @@ body,
   font-size: 0.85rem;
 }
 
+.btn-toggle.active {
+  background: #a5d6a7;
+  border-color: #2e7d32;
+  font-weight: 600;
+}
+
 .link-btn {
   background: none;
   border: none;
@@ -234,6 +240,26 @@ body,
 .detail-row {
   margin: 4px 0;
   font-size: 0.9rem;
+}
+
+.badge-in-season {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.season-selects {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.season-selects select {
+  flex: 1;
+  padding: 8px 6px;
+  border: 1px solid #c8d6c8;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: inherit;
 }
 
 .detail-meta {

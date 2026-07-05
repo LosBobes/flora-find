@@ -12,6 +12,7 @@ your neighborhood, and search for fruit near you — built on Google Maps.
 - Interactive Google Map with emoji fruit markers and info windows
 - Register a tree by clicking its exact spot on the map (name, fruit, species, season, notes)
 - Attach up to 3 photos per tree — thumbnails show in the info window
+- Structured harvest seasons (start/end month) with a "🟢 Ripe now" filter and in-season badges
 - Free-text search across names, fruits, species and notes
 - Filter by fruit type; the list auto-follows the map viewport
 - Radius search API (`?lat=&lng=&radius_km=`) with distance-sorted results
@@ -69,7 +70,7 @@ Open http://localhost:5173 — the dev server proxies `/api/*` to the backend on
 | `POST` | `/api/auth/register` | — | Create account, returns JWT |
 | `POST` | `/api/auth/login` | — | Log in, returns JWT |
 | `GET` | `/api/auth/me` | ✅ | Current user |
-| `GET` | `/api/trees` | — | List/search trees (`q`, `fruit_type`, bbox `min_lat…max_lng`, radius `lat`+`lng`+`radius_km`) |
+| `GET` | `/api/trees` | — | List/search trees (`q`, `fruit_type`, `ripe_now`, bbox `min_lat…max_lng`, radius `lat`+`lng`+`radius_km`) |
 | `GET` | `/api/trees/fruit-types` | — | Distinct fruit types (for filters) |
 | `GET` | `/api/trees/{id}` | — | Tree details |
 | `POST` | `/api/trees` | ✅ | Register a tree |

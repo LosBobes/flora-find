@@ -53,12 +53,20 @@ def make_tree(token, **overrides):
         "lat": 44.8125,
         "lng": 20.4612,
         "description": "Sweet dark cherries in June.",
-        "season": "June",
+        "season_start": 6,
+        "season_end": 6,
     }
     body.update(overrides)
     resp = client.post("/api/trees", json=body, headers=auth_headers(token))
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+def month_offset(delta):
+    """Current UTC month shifted by delta, wrapped to 1-12."""
+    from app.models import utcnow
+
+    return (utcnow().month - 1 + delta) % 12 + 1
 
 
 def test_register_login_me():
@@ -160,6 +168,85 @@ def test_fruit_types_endpoint():
 
     resp = client.get("/api/trees/fruit-types")
     assert resp.json() == ["Apple", "Cherry"]
+
+
+def test_ripe_now_filter():
+    token = register()["access_token"]
+    make_tree(token, name="In season", season_start=month_offset(-1), season_end=month_offset(1))
+    make_tree(token, name="Out of season", season_start=month_offset(2), season_end=month_offset(3))
+    make_tree(token, name="No season", season_start=None, season_end=None)
+
+    resp = client.get("/api/trees", params={"ripe_now": "true"})
+    assert [t["name"] for t in resp.json()] == ["In season"]
+
+    resp = client.get("/api/trees")
+    by_name = {t["name"]: t for t in resp.json()}
+    assert by_name["In season"]["in_season"] is True
+    assert by_name["Out of season"]["in_season"] is False
+    assert by_name["No season"]["in_season"] is False
+
+
+def test_ripe_now_handles_wraparound_season():
+    token = register()["access_token"]
+    # Season spans the new year and covers the current month, e.g. Nov-Feb in January.
+    make_tree(token, name="Wrap", season_start=month_offset(-1), season_end=month_offset(-11))
+
+    resp = client.get("/api/trees", params={"ripe_now": "true"})
+    assert [t["name"] for t in resp.json()] == ["Wrap"]
+    assert resp.json()[0]["in_season"] is True
+
+
+def test_single_month_season_filled():
+    token = register()["access_token"]
+    tree = make_tree(token, season_start=7, season_end=None)
+    assert tree["season_start"] == 7
+    assert tree["season_end"] == 7
+
+
+def test_season_month_validated():
+    token = register()["access_token"]
+    resp = client.post(
+        "/api/trees",
+        json={"name": "X", "fruit_type": "Fig", "lat": 0, "lng": 0, "season_start": 13},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 422
+
+
+def test_season_text_migration():
+    from sqlalchemy import create_engine, text
+
+    from app.migrations import parse_season_text, run_migrations
+
+    assert parse_season_text("June") == (6, 6)
+    assert parse_season_text("June–July") == (6, 7)
+    assert parse_season_text("late Sep to early Nov") == (9, 11)
+    assert parse_season_text("whenever") == (None, None)
+    assert parse_season_text(None) == (None, None)
+
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE trees (id INTEGER PRIMARY KEY, name TEXT, fruit_type TEXT, "
+                "season TEXT, lat FLOAT, lng FLOAT)"
+            )
+        )
+        conn.execute(
+            text("INSERT INTO trees (id, name, fruit_type, season, lat, lng) VALUES "
+                 "(1, 'A', 'Cherry', 'June–July', 0, 0), (2, 'B', 'Fig', NULL, 0, 0)")
+        )
+
+    run_migrations(engine)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT id, season_start, season_end FROM trees ORDER BY id")
+        ).all()
+    assert rows == [(1, 6, 7), (2, None, None)]
+
+    # Running again is a no-op.
+    run_migrations(engine)
 
 
 PNG_BYTES = bytes.fromhex(

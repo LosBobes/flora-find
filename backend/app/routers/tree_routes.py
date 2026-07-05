@@ -2,12 +2,12 @@ import math
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import Tree, TreePhoto, User
+from ..models import Tree, TreePhoto, User, utcnow
 from ..schemas import PhotoOut, TreeCreate, TreeOut, TreeUpdate
 from ..storage import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_TREE, UPLOAD_DIR
 
@@ -28,6 +28,7 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 def list_trees(
     q: str | None = Query(default=None, description="Free-text search over name, fruit type, species, description"),
     fruit_type: str | None = Query(default=None),
+    ripe_now: bool = Query(default=False, description="Only trees currently in season"),
     min_lat: float | None = Query(default=None, ge=-90, le=90),
     max_lat: float | None = Query(default=None, ge=-90, le=90),
     min_lng: float | None = Query(default=None, ge=-180, le=180),
@@ -52,6 +53,25 @@ def list_trees(
         )
     if fruit_type:
         query = query.filter(func.lower(Tree.fruit_type) == fruit_type.lower())
+
+    if ripe_now:
+        month = utcnow().month
+        query = query.filter(
+            Tree.season_start.isnot(None),
+            Tree.season_end.isnot(None),
+            or_(
+                and_(
+                    Tree.season_start <= Tree.season_end,
+                    Tree.season_start <= month,
+                    Tree.season_end >= month,
+                ),
+                # Season wraps around the new year, e.g. November-February.
+                and_(
+                    Tree.season_start > Tree.season_end,
+                    or_(Tree.season_start <= month, Tree.season_end >= month),
+                ),
+            ),
+        )
 
     # Viewport (bounding box) filter, e.g. current map bounds.
     if min_lat is not None and max_lat is not None:

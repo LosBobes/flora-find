@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { COMMON_FRUITS } from '../fruitIcons'
+import { MONTHS } from '../seasons'
 
 const MAX_PHOTOS = 3
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp'
@@ -8,7 +9,8 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [fruitType, setFruitType] = useState(initial?.fruit_type ?? '')
   const [species, setSpecies] = useState(initial?.species ?? '')
-  const [season, setSeason] = useState(initial?.season ?? '')
+  const [seasonStart, setSeasonStart] = useState(initial?.season_start ?? '')
+  const [seasonEnd, setSeasonEnd] = useState(initial?.season_end ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [photos, setPhotos] = useState([])
   const [error, setError] = useState(null)
@@ -29,7 +31,8 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
           name,
           fruit_type: fruitType,
           species: species || null,
-          season: season || null,
+          season_start: seasonStart ? Number(seasonStart) : null,
+          season_end: seasonEnd ? Number(seasonEnd) : null,
           description: description || null,
           lat: position.lat,
           lng: position.lng,
@@ -86,12 +89,24 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
       </label>
       <label>
         Season <span className="optional">(optional)</span>
-        <input
-          value={season}
-          onChange={(event) => setSeason(event.target.value)}
-          placeholder="e.g. June–July"
-          maxLength={120}
-        />
+        <span className="season-selects">
+          <select value={seasonStart} onChange={(event) => setSeasonStart(event.target.value)}>
+            <option value="">From…</option>
+            {MONTHS.map((month, index) => (
+              <option key={month} value={index + 1}>
+                {month}
+              </option>
+            ))}
+          </select>
+          <select value={seasonEnd} onChange={(event) => setSeasonEnd(event.target.value)}>
+            <option value="">To…</option>
+            {MONTHS.map((month, index) => (
+              <option key={month} value={index + 1}>
+                {month}
+              </option>
+            ))}
+          </select>
+        </span>
       </label>
       <label>
         Notes <span className="optional">(optional)</span>

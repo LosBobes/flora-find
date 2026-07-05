@@ -5,9 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
+from .migrations import run_migrations
 from .routers import auth_routes, tree_routes
 from .storage import UPLOAD_DIR
 
+run_migrations(engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(

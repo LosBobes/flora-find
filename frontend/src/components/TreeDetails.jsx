@@ -1,7 +1,9 @@
 import { fruitEmoji } from '../fruitIcons'
+import { formatSeason } from '../seasons'
 
 export default function TreeDetails({ tree, currentUser, onEdit, onDelete }) {
   const isOwner = currentUser && tree.owner?.id === currentUser.id
+  const season = formatSeason(tree)
   return (
     <div className="tree-details">
       <h3>
@@ -11,9 +13,10 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete }) {
         <strong>Fruit:</strong> {tree.fruit_type}
         {tree.species ? ` (${tree.species})` : ''}
       </p>
-      {tree.season && (
+      {season && (
         <p className="detail-row">
-          <strong>Season:</strong> {tree.season}
+          <strong>Season:</strong> {season}
+          {tree.in_season && <span className="badge-in-season"> 🟢 In season</span>}
         </p>
       )}
       {tree.description && <p className="detail-row">{tree.description}</p>}

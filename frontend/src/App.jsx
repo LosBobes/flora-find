@@ -3,6 +3,7 @@ import { APIProvider } from '@vis.gl/react-google-maps'
 import { api } from './api'
 import { useAuth } from './AuthContext'
 import { fruitEmoji } from './fruitIcons'
+import { formatSeason } from './seasons'
 import AuthModal from './components/AuthModal'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
@@ -17,6 +18,7 @@ export default function App() {
   const [fruitTypes, setFruitTypes] = useState([])
   const [searchText, setSearchText] = useState('')
   const [fruitFilter, setFruitFilter] = useState('')
+  const [ripeNow, setRipeNow] = useState(false)
   const [selectedTree, setSelectedTree] = useState(null)
   const [panTarget, setPanTarget] = useState(null)
 
@@ -30,7 +32,11 @@ export default function App() {
   const debounceRef = useRef(null)
 
   const refreshTrees = useCallback(async () => {
-    const params = { q: searchText || undefined, fruit_type: fruitFilter || undefined }
+    const params = {
+      q: searchText || undefined,
+      fruit_type: fruitFilter || undefined,
+      ripe_now: ripeNow || undefined,
+    }
     const bounds = boundsRef.current
     if (bounds && !searchText) {
       // Only constrain to the viewport when not doing a text search, so
@@ -45,7 +51,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to load trees', err)
     }
-  }, [searchText, fruitFilter])
+  }, [searchText, fruitFilter, ripeNow])
 
   useEffect(() => {
     refreshTrees()
@@ -165,6 +171,13 @@ export default function App() {
                 </option>
               ))}
             </select>
+            <button
+              className={`btn btn-toggle${ripeNow ? ' active' : ''}`}
+              onClick={() => setRipeNow((value) => !value)}
+              title="Only show trees currently in season"
+            >
+              🟢 Ripe now
+            </button>
           </div>
           <div className="user-controls">
             {user ? (
@@ -211,11 +224,14 @@ export default function App() {
                 >
                   <span className="tree-list-emoji">{fruitEmoji(tree.fruit_type)}</span>
                   <span>
-                    <strong>{tree.name}</strong>
+                    <strong>
+                      {tree.name}
+                      {tree.in_season && <span title="In season now"> 🟢</span>}
+                    </strong>
                     <br />
                     <small>
                       {tree.fruit_type}
-                      {tree.season ? ` · ${tree.season}` : ''}
+                      {formatSeason(tree) ? ` · ${formatSeason(tree)}` : ''}
                     </small>
                   </span>
                 </li>
