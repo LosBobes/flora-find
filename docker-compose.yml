@@ -16,9 +16,6 @@ services:
   app:
     build:
       context: .
-      args:
-        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
-        VITE_GOOGLE_MAPS_MAP_ID: ${VITE_GOOGLE_MAPS_MAP_ID:-DEMO_MAP_ID}
     environment:
       FLORA_DATABASE_URL: postgresql+psycopg2://flora:flora@db:5432/flora
       FLORA_JWT_SECRET: ${FLORA_JWT_SECRET:?set FLORA_JWT_SECRET in .env}

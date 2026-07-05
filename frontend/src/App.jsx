@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { APIProvider } from '@vis.gl/react-google-maps'
 import { api } from './api'
 import { useAuth } from './AuthContext'
 import { PLANT_CATEGORIES, fruitEmoji, plantEmoji } from './fruitIcons'
@@ -8,8 +7,6 @@ import AuthModal from './components/AuthModal'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
-
-const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 const NEAR_ME_RADIUS_KM = 5
 
@@ -194,190 +191,175 @@ export default function App() {
     setPanTarget({ lat: tree.lat, lng: tree.lng, ts: Date.now() })
   }
 
-  if (!MAPS_API_KEY) {
-    return (
-      <div className="setup-hint">
-        <h1>🌳 FloraFind</h1>
-        <p>
-          Missing Google Maps API key. Copy <code>frontend/.env.example</code> to{' '}
-          <code>frontend/.env</code> and set <code>VITE_GOOGLE_MAPS_API_KEY</code>, then restart
-          the dev server.
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <APIProvider apiKey={MAPS_API_KEY}>
-      <div className="app">
-        <header className="topbar">
-          <div className="brand">🌳 FloraFind</div>
-          <div className="search-controls">
-            <input
-              className="search-input"
-              placeholder="Search plants, fruits, notes…"
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-            />
-            <select
-              className="fruit-select"
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-            >
-              <option value="">All categories</option>
-              {PLANT_CATEGORIES.map((entry) => (
-                <option key={entry.value} value={entry.value}>
-                  {entry.emoji} {entry.label}
-                </option>
-              ))}
-            </select>
-            <select
-              className="fruit-select"
-              value={fruitFilter}
-              onChange={(event) => setFruitFilter(event.target.value)}
-            >
-              <option value="">All types</option>
-              {fruitTypes.map((fruit) => (
-                <option key={fruit} value={fruit}>
-                  {fruitEmoji(fruit)} {fruit}
-                </option>
-              ))}
-            </select>
-            <button
-              className={`btn btn-toggle${ripeNow ? ' active' : ''}`}
-              onClick={() => setRipeNow((value) => !value)}
-              title="Only show plants currently in season or bloom"
-            >
-              🟢 In season
-            </button>
-          </div>
-          <div className="user-controls">
-            {user ? (
-              <>
-                <span className="hello">Hi, {user.username}</span>
-                <button className="btn" onClick={logout}>
-                  Log out
-                </button>
-              </>
-            ) : (
-              <>
-                <button className="btn" onClick={() => setAuthModal('login')}>
-                  Log in
-                </button>
-                <button className="btn btn-primary" onClick={() => setAuthModal('register')}>
-                  Register
-                </button>
-              </>
-            )}
-          </div>
-        </header>
-
-        <div className="content">
-          <aside className="sidebar">
-            <button
-              className={`btn btn-add ${addMode ? 'btn-danger' : 'btn-primary'}`}
-              onClick={addMode ? () => { setAddMode(false); setDraftPosition(null) } : startAddMode}
-            >
-              {addMode ? '✕ Cancel adding' : '+ Register a plant'}
-            </button>
-            {addMode && !draftPosition && (
-              <p className="hint">Click on the map where the plant grows.</p>
-            )}
-            <button
-              className={`btn btn-near-me${nearMe ? ' active' : ''}`}
-              onClick={handleNearMe}
-              disabled={locating}
-            >
-              {locating ? 'Locating…' : nearMe ? '✕ Leave near me' : '📍 Near me'}
-            </button>
-            <h2 className="sidebar-title">
-              {trees.length} plant{trees.length === 1 ? '' : 's'}
-              {nearMe
-                ? ` within ${NEAR_ME_RADIUS_KM} km`
-                : searchText
-                  ? ' matching'
-                  : ' in view'}
-            </h2>
-            <ul className="tree-list">
-              {trees.map((tree) => (
-                <li
-                  key={tree.id}
-                  className={selectedTree?.id === tree.id ? 'selected' : ''}
-                  onClick={() => selectFromList(tree)}
-                >
-                  <span className="tree-list-emoji">{plantEmoji(tree)}</span>
-                  <span>
-                    <strong>
-                      {tree.name}
-                      {tree.hazard && <span title="Poisonous / hazardous"> ☠️</span>}
-                      {tree.in_season && <span title="In season now"> 🟢</span>}
-                      {tree.flagged_gone && <span title="Reported gone"> ⚠️</span>}
-                    </strong>
-                    <br />
-                    <small>
-                      {tree.fruit_type}
-                      {formatSeason(tree) ? ` · ${formatSeason(tree)}` : ''}
-                      {typeof tree.distance_km === 'number' && (
-                        <span className="distance"> · {formatDistance(tree.distance_km)}</span>
-                      )}
-                    </small>
-                  </span>
-                </li>
-              ))}
-              {trees.length === 0 && (
-                <li className="empty">Nothing here yet — register the first plant!</li>
-              )}
-            </ul>
-          </aside>
-
-          <main className="map-wrap">
-            <MapView
-              trees={trees}
-              selectedTree={selectedTree}
-              onSelectTree={setSelectedTree}
-              addMode={addMode}
-              draftPosition={draftPosition}
-              onMapClick={handleMapClick}
-              onBoundsChanged={handleBoundsChanged}
-              panTarget={panTarget}
-              userPosition={nearMe}
-            >
-              {selectedTree && (
-                <TreeDetails
-                  tree={selectedTree}
-                  currentUser={user}
-                  onEdit={() => setEditingTree(selectedTree)}
-                  onDelete={handleDelete}
-                  onConfirm={handleConfirm}
-                />
-              )}
-            </MapView>
-
-            {addMode && draftPosition && (
-              <div className="form-panel">
-                <TreeForm
-                  position={draftPosition}
-                  onSubmit={handleCreate}
-                  onCancel={() => setDraftPosition(null)}
-                />
-              </div>
-            )}
-            {editingTree && (
-              <div className="form-panel">
-                <TreeForm
-                  position={{ lat: editingTree.lat, lng: editingTree.lng }}
-                  initial={editingTree}
-                  onSubmit={handleUpdate}
-                  onCancel={() => setEditingTree(null)}
-                />
-              </div>
-            )}
-            {notice && <div className="notice">{notice}</div>}
-          </main>
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">🌳 FloraFind</div>
+        <div className="search-controls">
+          <input
+            className="search-input"
+            placeholder="Search plants, fruits, notes…"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+          />
+          <select
+            className="fruit-select"
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="">All categories</option>
+            {PLANT_CATEGORIES.map((entry) => (
+              <option key={entry.value} value={entry.value}>
+                {entry.emoji} {entry.label}
+              </option>
+            ))}
+          </select>
+          <select
+            className="fruit-select"
+            value={fruitFilter}
+            onChange={(event) => setFruitFilter(event.target.value)}
+          >
+            <option value="">All types</option>
+            {fruitTypes.map((fruit) => (
+              <option key={fruit} value={fruit}>
+                {fruitEmoji(fruit)} {fruit}
+              </option>
+            ))}
+          </select>
+          <button
+            className={`btn btn-toggle${ripeNow ? ' active' : ''}`}
+            onClick={() => setRipeNow((value) => !value)}
+            title="Only show plants currently in season or bloom"
+          >
+            🟢 In season
+          </button>
         </div>
+        <div className="user-controls">
+          {user ? (
+            <>
+              <span className="hello">Hi, {user.username}</span>
+              <button className="btn" onClick={logout}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn" onClick={() => setAuthModal('login')}>
+                Log in
+              </button>
+              <button className="btn btn-primary" onClick={() => setAuthModal('register')}>
+                Register
+              </button>
+            </>
+          )}
+        </div>
+      </header>
 
-        {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} />}
+      <div className="content">
+        <aside className="sidebar">
+          <button
+            className={`btn btn-add ${addMode ? 'btn-danger' : 'btn-primary'}`}
+            onClick={addMode ? () => { setAddMode(false); setDraftPosition(null) } : startAddMode}
+          >
+            {addMode ? '✕ Cancel adding' : '+ Register a plant'}
+          </button>
+          {addMode && !draftPosition && (
+            <p className="hint">Click on the map where the plant grows.</p>
+          )}
+          <button
+            className={`btn btn-near-me${nearMe ? ' active' : ''}`}
+            onClick={handleNearMe}
+            disabled={locating}
+          >
+            {locating ? 'Locating…' : nearMe ? '✕ Leave near me' : '📍 Near me'}
+          </button>
+          <h2 className="sidebar-title">
+            {trees.length} plant{trees.length === 1 ? '' : 's'}
+            {nearMe
+              ? ` within ${NEAR_ME_RADIUS_KM} km`
+              : searchText
+                ? ' matching'
+                : ' in view'}
+          </h2>
+          <ul className="tree-list">
+            {trees.map((tree) => (
+              <li
+                key={tree.id}
+                className={selectedTree?.id === tree.id ? 'selected' : ''}
+                onClick={() => selectFromList(tree)}
+              >
+                <span className="tree-list-emoji">{plantEmoji(tree)}</span>
+                <span>
+                  <strong>
+                    {tree.name}
+                    {tree.hazard && <span title="Poisonous / hazardous"> ☠️</span>}
+                    {tree.in_season && <span title="In season now"> 🟢</span>}
+                    {tree.flagged_gone && <span title="Reported gone"> ⚠️</span>}
+                  </strong>
+                  <br />
+                  <small>
+                    {tree.fruit_type}
+                    {formatSeason(tree) ? ` · ${formatSeason(tree)}` : ''}
+                    {typeof tree.distance_km === 'number' && (
+                      <span className="distance"> · {formatDistance(tree.distance_km)}</span>
+                    )}
+                  </small>
+                </span>
+              </li>
+            ))}
+            {trees.length === 0 && (
+              <li className="empty">Nothing here yet — register the first plant!</li>
+            )}
+          </ul>
+        </aside>
+
+        <main className="map-wrap">
+          <MapView
+            trees={trees}
+            selectedTree={selectedTree}
+            onSelectTree={setSelectedTree}
+            addMode={addMode}
+            draftPosition={draftPosition}
+            onMapClick={handleMapClick}
+            onBoundsChanged={handleBoundsChanged}
+            panTarget={panTarget}
+            userPosition={nearMe}
+          >
+            {selectedTree && (
+              <TreeDetails
+                tree={selectedTree}
+                currentUser={user}
+                onEdit={() => setEditingTree(selectedTree)}
+                onDelete={handleDelete}
+                onConfirm={handleConfirm}
+              />
+            )}
+          </MapView>
+
+          {addMode && draftPosition && (
+            <div className="form-panel">
+              <TreeForm
+                position={draftPosition}
+                onSubmit={handleCreate}
+                onCancel={() => setDraftPosition(null)}
+              />
+            </div>
+          )}
+          {editingTree && (
+            <div className="form-panel">
+              <TreeForm
+                position={{ lat: editingTree.lat, lng: editingTree.lng }}
+                initial={editingTree}
+                onSubmit={handleUpdate}
+                onCancel={() => setEditingTree(null)}
+              />
+            </div>
+          )}
+          {notice && <div className="notice">{notice}</div>}
+        </main>
       </div>
-    </APIProvider>
+
+      {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} />}
+    </div>
   )
 }
