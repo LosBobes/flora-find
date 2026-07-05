@@ -108,6 +108,12 @@ body,
   font-size: 0.85rem;
 }
 
+.btn-toggle.active {
+  background: #a5d6a7;
+  border-color: #2e7d32;
+  font-weight: 600;
+}
+
 .link-btn {
   background: none;
   border: none;
@@ -139,6 +145,22 @@ body,
 .btn-add {
   width: 100%;
   font-size: 1rem;
+}
+
+.btn-near-me {
+  width: 100%;
+}
+
+.btn-near-me.active {
+  background: #e3f0fd;
+  border-color: #1a73e8;
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+.distance {
+  color: #1a73e8;
+  font-weight: 600;
 }
 
 .hint {
@@ -221,6 +243,15 @@ body,
   font-size: 34px;
 }
 
+.user-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1a73e8;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
 /* ---------- Info window / details ---------- */
 .tree-details {
   max-width: 260px;
@@ -236,6 +267,26 @@ body,
   font-size: 0.9rem;
 }
 
+.badge-in-season {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.season-selects {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.season-selects select {
+  flex: 1;
+  padding: 8px 6px;
+  border: 1px solid #c8d6c8;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+
 .detail-meta {
   margin: 8px 0 4px;
   font-size: 0.78rem;
@@ -246,6 +297,51 @@ body,
   display: flex;
   gap: 6px;
   margin-top: 6px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.gone-flag {
+  margin: 4px 0;
+  padding: 6px 8px;
+  background: #fdecea;
+  border-radius: 6px;
+  color: #a51f1f;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ---------- Photos ---------- */
+.photo-gallery {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.photo-thumb {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e0e6e0;
+}
+
+.photo-previews {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.photo-preview {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #c8d6c8;
 }
 
 /* ---------- Forms & modals ---------- */

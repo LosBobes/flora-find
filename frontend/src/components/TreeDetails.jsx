@@ -1,22 +1,44 @@
 import { fruitEmoji } from '../fruitIcons'
+import { formatSeason } from '../seasons'
 
-export default function TreeDetails({ tree, currentUser, onEdit, onDelete }) {
+function daysAgo(dateString) {
+  const days = Math.floor((Date.now() - new Date(dateString).getTime()) / 86400000)
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  return `${days} days ago`
+}
+
+export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onConfirm }) {
   const isOwner = currentUser && tree.owner?.id === currentUser.id
+  const season = formatSeason(tree)
   return (
     <div className="tree-details">
       <h3>
         {fruitEmoji(tree.fruit_type)} {tree.name}
       </h3>
+      {tree.flagged_gone && (
+        <p className="gone-flag">⚠️ Reported gone by {tree.gone_reports} people</p>
+      )}
       <p className="detail-row">
         <strong>Fruit:</strong> {tree.fruit_type}
         {tree.species ? ` (${tree.species})` : ''}
       </p>
-      {tree.season && (
+      {season && (
         <p className="detail-row">
-          <strong>Season:</strong> {tree.season}
+          <strong>Season:</strong> {season}
+          {tree.in_season && <span className="badge-in-season"> 🟢 In season</span>}
         </p>
       )}
       {tree.description && <p className="detail-row">{tree.description}</p>}
+      {tree.photos?.length > 0 && (
+        <div className="photo-gallery">
+          {tree.photos.map((photo) => (
+            <a key={photo.id} href={photo.url} target="_blank" rel="noreferrer">
+              <img className="photo-thumb" src={photo.url} alt={`Photo of ${tree.name}`} />
+            </a>
+          ))}
+        </div>
+      )}
       {typeof tree.distance_km === 'number' && (
         <p className="detail-row">
           <strong>Distance:</strong> {tree.distance_km.toFixed(1)} km
@@ -25,7 +47,16 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete }) {
       <p className="detail-meta">
         Registered by {tree.owner?.username ?? 'unknown'} on{' '}
         {new Date(tree.created_at).toLocaleDateString()}
+        {tree.last_confirmed_at && <> · Last confirmed {daysAgo(tree.last_confirmed_at)}</>}
       </p>
+      <div className="confirm-actions">
+        <button className="btn btn-small" onClick={() => onConfirm('present')}>
+          👍 Still there
+        </button>
+        <button className="btn btn-small" onClick={() => onConfirm('gone')}>
+          👎 Gone
+        </button>
+      </div>
       {isOwner && (
         <div className="detail-actions">
           <button className="btn btn-small" onClick={onEdit}>

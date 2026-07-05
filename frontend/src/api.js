@@ -25,7 +25,8 @@ export function clearSession() {
 
 async function request(path, { method = 'GET', body, auth = false } = {}) {
   const headers = {}
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (auth) {
     const token = getToken()
     if (token) headers['Authorization'] = `Bearer ${token}`
@@ -34,7 +35,7 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
   const resp = await fetch(path, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: isForm ? body : body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   if (resp.status === 204) return null
@@ -75,4 +76,19 @@ export const api = {
   createTree: (tree) => request('/api/trees', { method: 'POST', body: tree, auth: true }),
   updateTree: (id, tree) => request(`/api/trees/${id}`, { method: 'PUT', body: tree, auth: true }),
   deleteTree: (id) => request(`/api/trees/${id}`, { method: 'DELETE', auth: true }),
+
+  confirmTree: (treeId, status) =>
+    request(`/api/trees/${treeId}/confirmations`, {
+      method: 'POST',
+      body: { status },
+      auth: true,
+    }),
+
+  uploadPhotos: (treeId, files) => {
+    const form = new FormData()
+    for (const file of files) form.append('files', file)
+    return request(`/api/trees/${treeId}/photos`, { method: 'POST', body: form, auth: true })
+  },
+  deletePhoto: (treeId, photoId) =>
+    request(`/api/trees/${treeId}/photos/${photoId}`, { method: 'DELETE', auth: true }),
 }

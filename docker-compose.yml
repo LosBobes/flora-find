@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: flora
+      POSTGRES_PASSWORD: flora
+      POSTGRES_DB: flora
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flora -d flora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
+        VITE_GOOGLE_MAPS_MAP_ID: ${VITE_GOOGLE_MAPS_MAP_ID:-DEMO_MAP_ID}
+    environment:
+      FLORA_DATABASE_URL: postgresql+psycopg2://flora:flora@db:5432/flora
+      FLORA_JWT_SECRET: ${FLORA_JWT_SECRET:?set FLORA_JWT_SECRET in .env}
+      FLORA_CORS_ORIGINS: ${FLORA_CORS_ORIGINS:-http://localhost:8000}
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

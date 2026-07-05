@@ -3,12 +3,19 @@ import { APIProvider } from '@vis.gl/react-google-maps'
 import { api } from './api'
 import { useAuth } from './AuthContext'
 import { fruitEmoji } from './fruitIcons'
+import { formatSeason } from './seasons'
 import AuthModal from './components/AuthModal'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+
+const NEAR_ME_RADIUS_KM = 5
+
+function formatDistance(km) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+}
 
 export default function App() {
   const { user, logout } = useAuth()
@@ -17,6 +24,9 @@ export default function App() {
   const [fruitTypes, setFruitTypes] = useState([])
   const [searchText, setSearchText] = useState('')
   const [fruitFilter, setFruitFilter] = useState('')
+  const [ripeNow, setRipeNow] = useState(false)
+  const [nearMe, setNearMe] = useState(null) // {lat, lng} | null
+  const [locating, setLocating] = useState(false)
   const [selectedTree, setSelectedTree] = useState(null)
   const [panTarget, setPanTarget] = useState(null)
 
@@ -30,9 +40,18 @@ export default function App() {
   const debounceRef = useRef(null)
 
   const refreshTrees = useCallback(async () => {
-    const params = { q: searchText || undefined, fruit_type: fruitFilter || undefined }
+    const params = {
+      q: searchText || undefined,
+      fruit_type: fruitFilter || undefined,
+      ripe_now: ripeNow || undefined,
+    }
     const bounds = boundsRef.current
-    if (bounds && !searchText) {
+    if (nearMe) {
+      // Radius search from the user's position; results come back distance-sorted.
+      params.lat = nearMe.lat
+      params.lng = nearMe.lng
+      params.radius_km = NEAR_ME_RADIUS_KM
+    } else if (bounds && !searchText) {
       // Only constrain to the viewport when not doing a text search, so
       // searches can find trees anywhere.
       params.min_lat = bounds.south
@@ -45,7 +64,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to load trees', err)
     }
-  }, [searchText, fruitFilter])
+  }, [searchText, fruitFilter, ripeNow, nearMe])
 
   useEffect(() => {
     refreshTrees()
@@ -85,12 +104,20 @@ export default function App() {
     }
   }
 
-  async function handleCreate(payload) {
+  async function handleCreate(payload, photos) {
     const created = await api.createTree(payload)
+    let message = `Registered “${created.name}” 🌱`
+    if (photos?.length) {
+      try {
+        created.photos = await api.uploadPhotos(created.id, photos)
+      } catch (err) {
+        message = `Tree saved, but photo upload failed: ${err.message}`
+      }
+    }
     setAddMode(false)
     setDraftPosition(null)
     setSelectedTree(created)
-    showNotice(`Registered “${created.name}” 🌱`)
+    showNotice(message)
     refreshTrees()
     api.fruitTypes().then(setFruitTypes).catch(() => {})
   }
@@ -109,6 +136,46 @@ export default function App() {
       await api.deleteTree(selectedTree.id)
       setSelectedTree(null)
       showNotice('Tree deleted')
+      refreshTrees()
+    } catch (err) {
+      showNotice(err.message)
+    }
+  }
+
+  function handleNearMe() {
+    if (nearMe) {
+      setNearMe(null)
+      return
+    }
+    if (!navigator.geolocation) {
+      showNotice('Geolocation is not supported by this browser')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = { lat: position.coords.latitude, lng: position.coords.longitude }
+        setLocating(false)
+        setNearMe(location)
+        setPanTarget({ ...location, ts: Date.now() })
+      },
+      (err) => {
+        setLocating(false)
+        showNotice(`Could not get your location: ${err.message}`)
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }
+
+  async function handleConfirm(status) {
+    if (!user) {
+      setAuthModal('login')
+      return
+    }
+    try {
+      const updated = await api.confirmTree(selectedTree.id, status)
+      setSelectedTree(updated)
+      showNotice(status === 'present' ? 'Thanks for confirming! 👍' : 'Noted — thanks for reporting.')
       refreshTrees()
     } catch (err) {
       showNotice(err.message)
@@ -157,6 +224,13 @@ export default function App() {
                 </option>
               ))}
             </select>
+            <button
+              className={`btn btn-toggle${ripeNow ? ' active' : ''}`}
+              onClick={() => setRipeNow((value) => !value)}
+              title="Only show trees currently in season"
+            >
+              🟢 Ripe now
+            </button>
           </div>
           <div className="user-controls">
             {user ? (
@@ -190,9 +264,20 @@ export default function App() {
             {addMode && !draftPosition && (
               <p className="hint">Click on the map where the tree stands.</p>
             )}
+            <button
+              className={`btn btn-near-me${nearMe ? ' active' : ''}`}
+              onClick={handleNearMe}
+              disabled={locating}
+            >
+              {locating ? 'Locating…' : nearMe ? '✕ Leave near me' : '📍 Near me'}
+            </button>
             <h2 className="sidebar-title">
               {trees.length} tree{trees.length === 1 ? '' : 's'}
-              {searchText ? ' matching' : ' in view'}
+              {nearMe
+                ? ` within ${NEAR_ME_RADIUS_KM} km`
+                : searchText
+                  ? ' matching'
+                  : ' in view'}
             </h2>
             <ul className="tree-list">
               {trees.map((tree) => (
@@ -203,11 +288,18 @@ export default function App() {
                 >
                   <span className="tree-list-emoji">{fruitEmoji(tree.fruit_type)}</span>
                   <span>
-                    <strong>{tree.name}</strong>
+                    <strong>
+                      {tree.name}
+                      {tree.in_season && <span title="In season now"> 🟢</span>}
+                      {tree.flagged_gone && <span title="Reported gone"> ⚠️</span>}
+                    </strong>
                     <br />
                     <small>
                       {tree.fruit_type}
-                      {tree.season ? ` · ${tree.season}` : ''}
+                      {formatSeason(tree) ? ` · ${formatSeason(tree)}` : ''}
+                      {typeof tree.distance_km === 'number' && (
+                        <span className="distance"> · {formatDistance(tree.distance_km)}</span>
+                      )}
                     </small>
                   </span>
                 </li>
@@ -228,6 +320,7 @@ export default function App() {
               onMapClick={handleMapClick}
               onBoundsChanged={handleBoundsChanged}
               panTarget={panTarget}
+              userPosition={nearMe}
             >
               {selectedTree && (
                 <TreeDetails
@@ -235,6 +328,7 @@ export default function App() {
                   currentUser={user}
                   onEdit={() => setEditingTree(selectedTree)}
                   onDelete={handleDelete}
+                  onConfirm={handleConfirm}
                 />
               )}
             </MapView>

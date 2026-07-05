@@ -1,13 +1,15 @@
 import math
+import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, or_
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import Tree, User
-from ..schemas import TreeCreate, TreeOut, TreeUpdate
+from ..models import Tree, TreeConfirmation, TreePhoto, User, utcnow
+from ..schemas import ConfirmationCreate, PhotoOut, TreeCreate, TreeOut, TreeUpdate
+from ..storage import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_TREE, UPLOAD_DIR
 
 router = APIRouter(prefix="/api/trees", tags=["trees"])
 
@@ -26,6 +28,7 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 def list_trees(
     q: str | None = Query(default=None, description="Free-text search over name, fruit type, species, description"),
     fruit_type: str | None = Query(default=None),
+    ripe_now: bool = Query(default=False, description="Only trees currently in season"),
     min_lat: float | None = Query(default=None, ge=-90, le=90),
     max_lat: float | None = Query(default=None, ge=-90, le=90),
     min_lng: float | None = Query(default=None, ge=-180, le=180),
@@ -36,7 +39,9 @@ def list_trees(
     limit: int = Query(default=500, ge=1, le=2000),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Tree).options(joinedload(Tree.owner))
+    query = db.query(Tree).options(
+        joinedload(Tree.owner), selectinload(Tree.photos), selectinload(Tree.confirmations)
+    )
 
     if q:
         like = f"%{q.lower()}%"
@@ -50,6 +55,25 @@ def list_trees(
         )
     if fruit_type:
         query = query.filter(func.lower(Tree.fruit_type) == fruit_type.lower())
+
+    if ripe_now:
+        month = utcnow().month
+        query = query.filter(
+            Tree.season_start.isnot(None),
+            Tree.season_end.isnot(None),
+            or_(
+                and_(
+                    Tree.season_start <= Tree.season_end,
+                    Tree.season_start <= month,
+                    Tree.season_end >= month,
+                ),
+                # Season wraps around the new year, e.g. November-February.
+                and_(
+                    Tree.season_start > Tree.season_end,
+                    or_(Tree.season_start <= month, Tree.season_end >= month),
+                ),
+            ),
+        )
 
     # Viewport (bounding box) filter, e.g. current map bounds.
     if min_lat is not None and max_lat is not None:
@@ -96,7 +120,12 @@ def fruit_types(db: Session = Depends(get_db)):
 
 @router.get("/{tree_id}", response_model=TreeOut)
 def get_tree(tree_id: int, db: Session = Depends(get_db)):
-    tree = db.query(Tree).options(joinedload(Tree.owner)).filter(Tree.id == tree_id).first()
+    tree = (
+        db.query(Tree)
+        .options(joinedload(Tree.owner), selectinload(Tree.photos))
+        .filter(Tree.id == tree_id)
+        .first()
+    )
     if tree is None:
         raise HTTPException(status_code=404, detail="Tree not found")
     return tree
@@ -145,5 +174,97 @@ def delete_tree(
         raise HTTPException(status_code=404, detail="Tree not found")
     if tree.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only delete trees you registered")
+    filenames = [photo.filename for photo in tree.photos]
     db.delete(tree)
     db.commit()
+    for filename in filenames:
+        (UPLOAD_DIR / filename).unlink(missing_ok=True)
+
+
+@router.post("/{tree_id}/confirmations", response_model=TreeOut)
+def confirm_tree(
+    tree_id: int,
+    payload: ConfirmationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tree = db.get(Tree, tree_id)
+    if tree is None:
+        raise HTTPException(status_code=404, detail="Tree not found")
+
+    # One vote per user per tree: a new vote replaces the previous one.
+    confirmation = (
+        db.query(TreeConfirmation)
+        .filter(TreeConfirmation.tree_id == tree_id, TreeConfirmation.user_id == current_user.id)
+        .first()
+    )
+    if confirmation is None:
+        confirmation = TreeConfirmation(tree_id=tree_id, user_id=current_user.id)
+        db.add(confirmation)
+    confirmation.status = payload.status
+    confirmation.created_at = utcnow()
+    db.commit()
+    db.refresh(tree)
+    return tree
+
+
+@router.post("/{tree_id}/photos", response_model=list[PhotoOut], status_code=status.HTTP_201_CREATED)
+def upload_photos(
+    tree_id: int,
+    files: list[UploadFile],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tree = db.get(Tree, tree_id)
+    if tree is None:
+        raise HTTPException(status_code=404, detail="Tree not found")
+    if tree.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only add photos to trees you registered")
+    if len(tree.photos) + len(files) > MAX_PHOTOS_PER_TREE:
+        raise HTTPException(
+            status_code=400, detail=f"A tree can have at most {MAX_PHOTOS_PER_TREE} photos"
+        )
+
+    photos = []
+    for file in files:
+        extension = ALLOWED_PHOTO_TYPES.get(file.content_type)
+        if extension is None:
+            allowed = ", ".join(sorted(ALLOWED_PHOTO_TYPES))
+            raise HTTPException(status_code=415, detail=f"Unsupported photo type. Use one of: {allowed}")
+        data = file.file.read(MAX_PHOTO_BYTES + 1)
+        if len(data) > MAX_PHOTO_BYTES:
+            raise HTTPException(
+                status_code=413, detail=f"Photos must be at most {MAX_PHOTO_BYTES // (1024 * 1024)} MB"
+            )
+        if not data:
+            raise HTTPException(status_code=400, detail="Empty photo upload")
+        photos.append((f"{secrets.token_hex(12)}{extension}", file.content_type, data))
+
+    saved = []
+    for filename, content_type, data in photos:
+        (UPLOAD_DIR / filename).write_bytes(data)
+        photo = TreePhoto(filename=filename, content_type=content_type, tree=tree)
+        db.add(photo)
+        saved.append(photo)
+    db.commit()
+    for photo in saved:
+        db.refresh(photo)
+    return saved
+
+
+@router.delete("/{tree_id}/photos/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_photo(
+    tree_id: int,
+    photo_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    photo = db.get(TreePhoto, photo_id)
+    if photo is None or photo.tree_id != tree_id:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    if photo.tree.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only remove photos from trees you registered")
+    filename = photo.filename
+    db.delete(photo)
+    db.commit()
+    (UPLOAD_DIR / filename).unlink(missing_ok=True)

@@ -1,7 +1,14 @@
 import os
 import sys
+import tempfile
 
 os.environ["FLORA_DATABASE_URL"] = "sqlite://"  # in-memory
+os.environ["FLORA_UPLOAD_DIR"] = tempfile.mkdtemp(prefix="florafind-uploads-")
+
+_frontend_dist = tempfile.mkdtemp(prefix="florafind-dist-")
+with open(os.path.join(_frontend_dist, "index.html"), "w") as f:
+    f.write("<!doctype html><title>FloraFind</title>")
+os.environ["FLORA_FRONTEND_DIST"] = _frontend_dist
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -51,12 +58,28 @@ def make_tree(token, **overrides):
         "lat": 44.8125,
         "lng": 20.4612,
         "description": "Sweet dark cherries in June.",
-        "season": "June",
+        "season_start": 6,
+        "season_end": 6,
     }
     body.update(overrides)
     resp = client.post("/api/trees", json=body, headers=auth_headers(token))
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+def month_offset(delta):
+    """Current UTC month shifted by delta, wrapped to 1-12."""
+    from app.models import utcnow
+
+    return (utcnow().month - 1 + delta) % 12 + 1
+
+
+def test_frontend_served_from_same_origin():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "FloraFind" in resp.text
+    # API routes still take precedence over the static mount.
+    assert client.get("/api/health").json() == {"status": "ok"}
 
 
 def test_register_login_me():
@@ -158,6 +181,254 @@ def test_fruit_types_endpoint():
 
     resp = client.get("/api/trees/fruit-types")
     assert resp.json() == ["Apple", "Cherry"]
+
+
+def test_ripe_now_filter():
+    token = register()["access_token"]
+    make_tree(token, name="In season", season_start=month_offset(-1), season_end=month_offset(1))
+    make_tree(token, name="Out of season", season_start=month_offset(2), season_end=month_offset(3))
+    make_tree(token, name="No season", season_start=None, season_end=None)
+
+    resp = client.get("/api/trees", params={"ripe_now": "true"})
+    assert [t["name"] for t in resp.json()] == ["In season"]
+
+    resp = client.get("/api/trees")
+    by_name = {t["name"]: t for t in resp.json()}
+    assert by_name["In season"]["in_season"] is True
+    assert by_name["Out of season"]["in_season"] is False
+    assert by_name["No season"]["in_season"] is False
+
+
+def test_ripe_now_handles_wraparound_season():
+    token = register()["access_token"]
+    # Season spans the new year and covers the current month, e.g. Nov-Feb in January.
+    make_tree(token, name="Wrap", season_start=month_offset(-1), season_end=month_offset(-11))
+
+    resp = client.get("/api/trees", params={"ripe_now": "true"})
+    assert [t["name"] for t in resp.json()] == ["Wrap"]
+    assert resp.json()[0]["in_season"] is True
+
+
+def test_single_month_season_filled():
+    token = register()["access_token"]
+    tree = make_tree(token, season_start=7, season_end=None)
+    assert tree["season_start"] == 7
+    assert tree["season_end"] == 7
+
+
+def test_season_month_validated():
+    token = register()["access_token"]
+    resp = client.post(
+        "/api/trees",
+        json={"name": "X", "fruit_type": "Fig", "lat": 0, "lng": 0, "season_start": 13},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 422
+
+
+def test_season_text_migration():
+    from sqlalchemy import create_engine, text
+
+    from app.migrations import parse_season_text, run_migrations
+
+    assert parse_season_text("June") == (6, 6)
+    assert parse_season_text("June–July") == (6, 7)
+    assert parse_season_text("late Sep to early Nov") == (9, 11)
+    assert parse_season_text("whenever") == (None, None)
+    assert parse_season_text(None) == (None, None)
+
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE trees (id INTEGER PRIMARY KEY, name TEXT, fruit_type TEXT, "
+                "season TEXT, lat FLOAT, lng FLOAT)"
+            )
+        )
+        conn.execute(
+            text("INSERT INTO trees (id, name, fruit_type, season, lat, lng) VALUES "
+                 "(1, 'A', 'Cherry', 'June–July', 0, 0), (2, 'B', 'Fig', NULL, 0, 0)")
+        )
+
+    run_migrations(engine)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT id, season_start, season_end FROM trees ORDER BY id")
+        ).all()
+    assert rows == [(1, 6, 7), (2, None, None)]
+
+    # Running again is a no-op.
+    run_migrations(engine)
+
+
+def confirm(token, tree_id, status_value):
+    return client.post(
+        f"/api/trees/{tree_id}/confirmations",
+        json={"status": status_value},
+        headers=auth_headers(token),
+    )
+
+
+def test_confirmation_requires_auth():
+    token = register()["access_token"]
+    tree = make_tree(token)
+    resp = client.post(f"/api/trees/{tree['id']}/confirmations", json={"status": "present"})
+    assert resp.status_code == 401
+
+
+def test_confirm_still_there_sets_last_confirmed():
+    token = register()["access_token"]
+    tree = make_tree(token)
+    assert tree["last_confirmed_at"] is None
+
+    resp = confirm(token, tree["id"], "present")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["last_confirmed_at"] is not None
+    assert data["gone_reports"] == 0
+    assert data["flagged_gone"] is False
+
+
+def test_one_vote_per_user_latest_wins():
+    token = register()["access_token"]
+    tree = make_tree(token)
+
+    confirm(token, tree["id"], "gone")
+    data = confirm(token, tree["id"], "gone").json()
+    assert data["gone_reports"] == 1  # voting twice doesn't double-count
+
+    data = confirm(token, tree["id"], "present").json()
+    assert data["gone_reports"] == 0  # switching the vote replaces it
+    assert data["last_confirmed_at"] is not None
+
+
+def test_flagged_gone_after_three_reports():
+    token = register()["access_token"]
+    tree = make_tree(token)
+
+    for i in range(3):
+        voter = register(f"voter{i}@example.com", f"voter{i}")["access_token"]
+        data = confirm(voter, tree["id"], "gone").json()
+    assert data["gone_reports"] == 3
+    assert data["flagged_gone"] is True
+
+    resp = client.get(f"/api/trees/{tree['id']}")
+    assert resp.json()["flagged_gone"] is True
+
+
+def test_confirm_missing_tree_404():
+    token = register()["access_token"]
+    resp = confirm(token, 999, "present")
+    assert resp.status_code == 404
+
+    tree = make_tree(token)
+    resp = confirm(token, tree["id"], "maybe")
+    assert resp.status_code == 422
+
+
+PNG_BYTES = bytes.fromhex(
+    "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
+    "0000000d4944415478da63f8ffff3f0300050001ffb7f5cc000000004945"
+    "4e44ae426082"
+)
+
+
+def upload_photos(token, tree_id, files):
+    return client.post(
+        f"/api/trees/{tree_id}/photos", files=files, headers=auth_headers(token)
+    )
+
+
+def png_file(name="tree.png"):
+    return ("files", (name, PNG_BYTES, "image/png"))
+
+
+def test_upload_and_delete_photos():
+    from app.storage import UPLOAD_DIR
+
+    token = register()["access_token"]
+    tree = make_tree(token)
+
+    resp = upload_photos(token, tree["id"], [png_file(), png_file("two.png")])
+    assert resp.status_code == 201, resp.text
+    photos = resp.json()
+    assert len(photos) == 2
+    assert all(photo["url"].startswith("/uploads/") for photo in photos)
+
+    # Files exist on disk and are served.
+    filename = photos[0]["url"].removeprefix("/uploads/")
+    assert (UPLOAD_DIR / filename).read_bytes() == PNG_BYTES
+    resp = client.get(photos[0]["url"])
+    assert resp.status_code == 200
+    assert resp.content == PNG_BYTES
+
+    # Photos appear on the tree.
+    resp = client.get(f"/api/trees/{tree['id']}")
+    assert len(resp.json()["photos"]) == 2
+
+    # Deleting a photo removes the record and the file.
+    resp = client.delete(
+        f"/api/trees/{tree['id']}/photos/{photos[0]['id']}", headers=auth_headers(token)
+    )
+    assert resp.status_code == 204
+    assert not (UPLOAD_DIR / filename).exists()
+    resp = client.get(f"/api/trees/{tree['id']}")
+    assert len(resp.json()["photos"]) == 1
+
+
+def test_photo_limit_enforced():
+    token = register()["access_token"]
+    tree = make_tree(token)
+
+    resp = upload_photos(token, tree["id"], [png_file(f"{i}.png") for i in range(4)])
+    assert resp.status_code == 400
+
+    resp = upload_photos(token, tree["id"], [png_file(f"{i}.png") for i in range(3)])
+    assert resp.status_code == 201
+    resp = upload_photos(token, tree["id"], [png_file("extra.png")])
+    assert resp.status_code == 400
+
+
+def test_photo_type_and_size_validated():
+    token = register()["access_token"]
+    tree = make_tree(token)
+
+    resp = upload_photos(token, tree["id"], [("files", ("evil.svg", b"<svg/>", "image/svg+xml"))])
+    assert resp.status_code == 415
+
+    from app.storage import MAX_PHOTO_BYTES
+
+    resp = upload_photos(
+        token, tree["id"], [("files", ("big.png", b"x" * (MAX_PHOTO_BYTES + 1), "image/png"))]
+    )
+    assert resp.status_code == 413
+
+
+def test_photo_upload_requires_owner():
+    token_a = register()["access_token"]
+    token_b = register("bob@example.com", "bob")["access_token"]
+    tree = make_tree(token_a)
+
+    resp = client.post(f"/api/trees/{tree['id']}/photos", files=[png_file()])
+    assert resp.status_code == 401
+
+    resp = upload_photos(token_b, tree["id"], [png_file()])
+    assert resp.status_code == 403
+
+
+def test_deleting_tree_removes_photo_files():
+    from app.storage import UPLOAD_DIR
+
+    token = register()["access_token"]
+    tree = make_tree(token)
+    photos = upload_photos(token, tree["id"], [png_file()]).json()
+    filename = photos[0]["url"].removeprefix("/uploads/")
+    assert (UPLOAD_DIR / filename).exists()
+
+    resp = client.delete(f"/api/trees/{tree['id']}", headers=auth_headers(token))
+    assert resp.status_code == 204
+    assert not (UPLOAD_DIR / filename).exists()
 
 
 def test_only_owner_can_edit_or_delete():

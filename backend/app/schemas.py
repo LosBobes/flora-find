@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class UserCreate(BaseModel):
@@ -33,9 +34,19 @@ class TreeBase(BaseModel):
     fruit_type: str = Field(min_length=1, max_length=80)
     species: str | None = Field(default=None, max_length=120)
     description: str | None = Field(default=None, max_length=2000)
-    season: str | None = Field(default=None, max_length=120)
+    season_start: int | None = Field(default=None, ge=1, le=12, description="First month in season (1-12)")
+    season_end: int | None = Field(default=None, ge=1, le=12, description="Last month in season (1-12)")
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def fill_single_month_season(self):
+        # A single month means the season starts and ends in that month.
+        if self.season_start is None and self.season_end is not None:
+            self.season_start = self.season_end
+        elif self.season_end is None and self.season_start is not None:
+            self.season_end = self.season_start
+        return self
 
 
 class TreeCreate(TreeBase):
@@ -47,9 +58,22 @@ class TreeUpdate(BaseModel):
     fruit_type: str | None = Field(default=None, min_length=1, max_length=80)
     species: str | None = Field(default=None, max_length=120)
     description: str | None = Field(default=None, max_length=2000)
-    season: str | None = Field(default=None, max_length=120)
+    season_start: int | None = Field(default=None, ge=1, le=12)
+    season_end: int | None = Field(default=None, ge=1, le=12)
     lat: float | None = Field(default=None, ge=-90, le=90)
     lng: float | None = Field(default=None, ge=-180, le=180)
+
+
+class ConfirmationCreate(BaseModel):
+    status: Literal["present", "gone"]
+
+
+class PhotoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    url: str
+    content_type: str
 
 
 class TreeOut(TreeBase):
@@ -58,4 +82,9 @@ class TreeOut(TreeBase):
     id: int
     created_at: datetime
     owner: UserOut
+    photos: list[PhotoOut] = []
+    in_season: bool = False
+    last_confirmed_at: datetime | None = None
+    gone_reports: int = 0
+    flagged_gone: bool = False
     distance_km: float | None = None

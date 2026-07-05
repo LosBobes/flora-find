@@ -2,10 +2,14 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .database import Base, engine
+from .migrations import run_migrations
 from .routers import auth_routes, tree_routes
+from .storage import UPLOAD_DIR
 
+run_migrations(engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -29,7 +33,16 @@ app.add_middleware(
 app.include_router(auth_routes.router)
 app.include_router(tree_routes.router)
 
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+# In production the frontend build is served from the same origin (see Dockerfile).
+# Mounted last so API routes keep precedence.
+frontend_dist = os.environ.get("FLORA_FRONTEND_DIST", "")
+if frontend_dist and os.path.isdir(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
