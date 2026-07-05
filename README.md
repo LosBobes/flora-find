@@ -91,3 +91,32 @@ Uploaded photos are served from `/uploads/…`.
 cd backend
 .venv/bin/python -m pytest tests/ -q
 ```
+
+CI (`.github/workflows/ci.yml`) runs the pytest suite and the frontend production build
+on every pull request and on pushes to `main`.
+
+## Deployment
+
+The repo ships with a multi-stage `Dockerfile` (frontend production build + FastAPI backend
+serving the API, `/uploads` and the built frontend from one origin) and a `docker-compose.yml`
+with Postgres:
+
+```bash
+# .env next to docker-compose.yml
+cat > .env <<'EOF'
+VITE_GOOGLE_MAPS_API_KEY=your-maps-key
+FLORA_JWT_SECRET=a-long-random-secret
+EOF
+
+docker compose up --build
+```
+
+Open http://localhost:8000 — the app, API and uploaded photos are all served from the same
+origin, backed by Postgres (`FLORA_DATABASE_URL` is preconfigured in the compose file, and
+uploads persist in a named volume). Schema migrations run automatically at app startup
+against whichever database `FLORA_DATABASE_URL` points to.
+
+| Variable | Purpose |
+| --- | --- |
+| `FLORA_FRONTEND_DIST` | Path to a frontend build for same-origin serving (set in the image) |
+| `VITE_GOOGLE_MAPS_API_KEY` / `VITE_GOOGLE_MAPS_MAP_ID` | Build args for the frontend stage |

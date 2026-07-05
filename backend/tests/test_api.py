@@ -5,6 +5,11 @@ import tempfile
 os.environ["FLORA_DATABASE_URL"] = "sqlite://"  # in-memory
 os.environ["FLORA_UPLOAD_DIR"] = tempfile.mkdtemp(prefix="florafind-uploads-")
 
+_frontend_dist = tempfile.mkdtemp(prefix="florafind-dist-")
+with open(os.path.join(_frontend_dist, "index.html"), "w") as f:
+    f.write("<!doctype html><title>FloraFind</title>")
+os.environ["FLORA_FRONTEND_DIST"] = _frontend_dist
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
@@ -67,6 +72,14 @@ def month_offset(delta):
     from app.models import utcnow
 
     return (utcnow().month - 1 + delta) % 12 + 1
+
+
+def test_frontend_served_from_same_origin():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "FloraFind" in resp.text
+    # API routes still take precedence over the static mount.
+    assert client.get("/api/health").json() == {"status": "ok"}
 
 
 def test_register_login_me():

@@ -39,3 +39,10 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+# In production the frontend build is served from the same origin (see Dockerfile).
+# Mounted last so API routes keep precedence.
+frontend_dist = os.environ.get("FLORA_FRONTEND_DIST", "")
+if frontend_dist and os.path.isdir(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
