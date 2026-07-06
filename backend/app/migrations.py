@@ -29,7 +29,18 @@ def parse_season_text(season: str | None) -> tuple[int | None, int | None]:
 
 def run_migrations(engine: Engine) -> None:
     inspector = inspect(engine)
-    if "trees" not in inspector.get_table_names():
+    tables = set(inspector.get_table_names())
+
+    # Add the admin flag to existing user tables.
+    if "users" in tables:
+        user_columns = {column["name"] for column in inspector.get_columns("users")}
+        if "is_admin" not in user_columns:
+            with engine.begin() as conn:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
+                )
+
+    if "trees" not in tables:
         return
     columns = {column["name"] for column in inspector.get_columns("trees")}
     # Backfill from the legacy free-text `season` column only when the structured

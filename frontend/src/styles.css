@@ -158,6 +158,40 @@ body,
   font-weight: 600;
 }
 
+.btn-export {
+  width: 100%;
+}
+
+.btn-export.active {
+  background: #fff3e0;
+  border-color: #ef6c00;
+  color: #ef6c00;
+  font-weight: 600;
+}
+
+/* Rectangle an admin drags on the map to pick an export area. */
+.export-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(239, 108, 0, 0.12);
+  border: 2px dashed #ef6c00;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.admin-badge {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #ef6c00;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .distance {
   color: #1a73e8;
   font-weight: 600;

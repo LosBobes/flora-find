@@ -67,6 +67,19 @@ def make_tree(token, **overrides):
     return resp.json()
 
 
+def make_admin(email="ana@example.com"):
+    from app.database import SessionLocal
+    from app.models import User
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == email.lower()).first()
+        user.is_admin = True
+        db.commit()
+    finally:
+        db.close()
+
+
 def month_offset(delta):
     """Current UTC month shifted by delta, wrapped to 1-12."""
     from app.models import utcnow
@@ -556,3 +569,113 @@ def test_only_owner_can_edit_or_delete():
     resp = client.delete(f"/api/trees/{tree['id']}", headers=auth_headers(token_a))
     assert resp.status_code == 204
     assert client.get(f"/api/trees/{tree['id']}").status_code == 404
+
+
+BELGRADE_BBOX = {"min_lat": 44.7, "max_lat": 44.9, "min_lng": 20.3, "max_lng": 20.6}
+
+
+def test_is_admin_defaults_false_and_surfaces_on_me():
+    data = register()
+    assert data["user"]["is_admin"] is False
+
+    make_admin()
+    resp = client.get("/api/auth/me", headers=auth_headers(data["access_token"]))
+    assert resp.json()["is_admin"] is True
+
+
+def test_export_requires_admin():
+    token = register()["access_token"]
+    make_tree(token, name="Belgrade cherry", lat=44.81, lng=20.46)
+
+    # Unauthenticated.
+    resp = client.get("/api/trees/export", params=BELGRADE_BBOX)
+    assert resp.status_code == 401
+
+    # Authenticated but not an admin.
+    resp = client.get("/api/trees/export", params=BELGRADE_BBOX, headers=auth_headers(token))
+    assert resp.status_code == 403
+
+
+def test_export_geojson_filters_by_area():
+    token = register()["access_token"]
+    make_tree(token, name="Belgrade cherry", lat=44.81, lng=20.46)
+    make_tree(token, name="Paris apple", fruit_type="Apple", lat=48.85, lng=2.35)
+    make_admin()
+
+    resp = client.get(
+        "/api/trees/export",
+        params={**BELGRADE_BBOX, "format": "geojson"},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("application/geo+json")
+    assert "attachment" in resp.headers["content-disposition"]
+    assert resp.headers["x-export-count"] == "1"
+
+    data = resp.json()
+    assert data["type"] == "FeatureCollection"
+    assert len(data["features"]) == 1
+    feature = data["features"][0]
+    assert feature["geometry"]["coordinates"] == [20.46, 44.81]
+    assert feature["properties"]["name"] == "Belgrade cherry"
+    assert feature["properties"]["owner"] == "ana"
+
+
+def test_export_csv_format():
+    token = register()["access_token"]
+    make_tree(token, name="Belgrade cherry", lat=44.81, lng=20.46)
+    make_admin()
+
+    resp = client.get(
+        "/api/trees/export",
+        params={**BELGRADE_BBOX, "format": "csv"},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+    lines = resp.text.strip().splitlines()
+    assert lines[0].startswith("id,name,category,fruit_type")
+    assert len(lines) == 2  # header + one row
+    assert "Belgrade cherry" in lines[1]
+
+
+def test_export_empty_area_is_valid():
+    token = register()["access_token"]
+    make_tree(token, name="Belgrade cherry", lat=44.81, lng=20.46)
+    make_admin()
+
+    resp = client.get(
+        "/api/trees/export",
+        params={"min_lat": 0, "max_lat": 1, "min_lng": 0, "max_lng": 1},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 200
+    assert resp.headers["x-export-count"] == "0"
+    assert resp.json()["features"] == []
+
+
+def test_is_admin_migration_adds_column():
+    from sqlalchemy import create_engine, text
+
+    from app.migrations import run_migrations
+
+    engine = create_engine("sqlite://")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT, username TEXT, "
+                "password_hash TEXT)"
+            )
+        )
+        conn.execute(
+            text("INSERT INTO users (id, email, username, password_hash) VALUES (1, 'a', 'a', 'x')")
+        )
+
+    run_migrations(engine)
+
+    with engine.connect() as conn:
+        rows = conn.execute(text("SELECT is_admin FROM users")).all()
+    assert rows == [(0,)]
+
+    # Running again is a no-op.
+    run_migrations(engine)
