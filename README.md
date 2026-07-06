@@ -2,15 +2,16 @@
 
 A community map of neighborhood plants. Register fruit trees, ornamental trees, shrubs,
 flowerbeds and vines you find around you, flag hazards like poison ivy, and search for
-fruit (or flowers) near you — built on Google Maps.
+fruit (or flowers) near you — built on [MapLibre GL](https://maplibre.org/) and
+[OpenStreetMap](https://www.openstreetmap.org/), fully open source with no map API key required.
 
 - **Backend:** FastAPI + SQLAlchemy + SQLite (swappable via `FLORA_DATABASE_URL`)
-- **Frontend:** React (Vite) + [`@vis.gl/react-google-maps`](https://visgl.github.io/react-google-maps/)
+- **Frontend:** React (Vite) + [`@vis.gl/react-maplibre`](https://visgl.github.io/react-maplibre/)
 - **Auth:** email/password registration with JWT bearer tokens
 
 ## Features
 
-- Interactive Google Map with emoji plant markers and info windows
+- Interactive OpenStreetMap map (MapLibre GL) with emoji plant markers and popups — no API key needed
 - Register any plant by clicking its exact spot on the map (name, type, species, season, notes)
 - Plant categories: fruit trees, general trees, shrubs/bushes, flowerbeds, vines and more
 - ☠️ Hazard flag for poisonous or dangerous plants (poison ivy, giant hogweed…) with
@@ -27,17 +28,10 @@ fruit (or flowers) near you — built on Google Maps.
 
 ## Getting started
 
-### 1. Google Maps API key
+The map uses OpenStreetMap tiles rendered with MapLibre GL — there is nothing to sign up
+for and no API key to configure.
 
-Create an API key in the [Google Cloud Console](https://console.cloud.google.com/google/maps-apis)
-with the **Maps JavaScript API** enabled, then:
-
-```bash
-cp frontend/.env.example frontend/.env
-# edit frontend/.env and set VITE_GOOGLE_MAPS_API_KEY
-```
-
-### 2. Backend
+### 1. Backend
 
 ```bash
 cd backend
@@ -49,7 +43,7 @@ uvicorn app.main:app --reload --port 8000
 API docs at http://localhost:8000/docs. The SQLite database (`florafind.db`) is created
 automatically on first start.
 
-### 3. Frontend
+### 2. Frontend
 
 ```bash
 cd frontend
@@ -63,8 +57,6 @@ Open http://localhost:5173 — the dev server proxies `/api/*` to the backend on
 
 | Variable | Where | Default | Purpose |
 | --- | --- | --- | --- |
-| `VITE_GOOGLE_MAPS_API_KEY` | frontend `.env` | — | Google Maps JS API key (required) |
-| `VITE_GOOGLE_MAPS_MAP_ID` | frontend `.env` | `DEMO_MAP_ID` | Map ID for Advanced Markers |
 | `FLORA_DATABASE_URL` | backend env | `sqlite:///./florafind.db` | SQLAlchemy database URL |
 | `FLORA_UPLOAD_DIR` | backend env | `./uploads` | Directory for uploaded tree photos |
 | `FLORA_JWT_SECRET` | backend env | dev value | JWT signing secret — **set in production** |
@@ -108,7 +100,6 @@ with Postgres:
 ```bash
 # .env next to docker-compose.yml
 cat > .env <<'EOF'
-VITE_GOOGLE_MAPS_API_KEY=your-maps-key
 FLORA_JWT_SECRET=a-long-random-secret
 EOF
 
@@ -123,4 +114,3 @@ against whichever database `FLORA_DATABASE_URL` points to.
 | Variable | Purpose |
 | --- | --- |
 | `FLORA_FRONTEND_DIST` | Path to a frontend build for same-origin serving (set in the image) |
-| `VITE_GOOGLE_MAPS_API_KEY` / `VITE_GOOGLE_MAPS_MAP_ID` | Build args for the frontend stage |

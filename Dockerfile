@@ -4,10 +4,6 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
-ARG VITE_GOOGLE_MAPS_API_KEY
-ARG VITE_GOOGLE_MAPS_MAP_ID
-ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY \
-    VITE_GOOGLE_MAPS_MAP_ID=$VITE_GOOGLE_MAPS_MAP_ID
 RUN npm run build
 
 # Stage 2: FastAPI backend serving the API, uploads and the frontend build.
