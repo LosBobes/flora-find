@@ -35,6 +35,89 @@ function PanTo({ target }) {
   return null
 }
 
+// Lets an admin drag a rectangle on the map to pick an area to export. While
+// active it takes over map dragging and draws a selection box on the canvas.
+function BoxSelect({ active, onComplete, onCancel }) {
+  const { current: mapRef } = useMap()
+
+  useEffect(() => {
+    if (!mapRef || !active) return
+    const map = mapRef.getMap ? mapRef.getMap() : mapRef
+    const canvas = map.getCanvasContainer()
+
+    let start = null
+    let box = null
+
+    const pointFor = (event) => {
+      const rect = canvas.getBoundingClientRect()
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+    }
+
+    const removeBox = () => {
+      if (box) {
+        box.remove()
+        box = null
+      }
+    }
+
+    const onMouseMove = (event) => {
+      const current = pointFor(event)
+      if (!box) {
+        box = document.createElement('div')
+        box.className = 'export-box'
+        canvas.appendChild(box)
+      }
+      const minX = Math.min(start.x, current.x)
+      const minY = Math.min(start.y, current.y)
+      box.style.transform = `translate(${minX}px, ${minY}px)`
+      box.style.width = `${Math.abs(current.x - start.x)}px`
+      box.style.height = `${Math.abs(current.y - start.y)}px`
+    }
+
+    const onMouseUp = (event) => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      removeBox()
+      map.dragPan.enable()
+      const end = pointFor(event)
+      const dragged = Math.abs(end.x - start.x) > 4 && Math.abs(end.y - start.y) > 4
+      if (!dragged) {
+        onCancel()
+        return
+      }
+      const a = map.unproject([start.x, start.y])
+      const b = map.unproject([end.x, end.y])
+      onComplete({
+        min_lat: Math.min(a.lat, b.lat),
+        max_lat: Math.max(a.lat, b.lat),
+        min_lng: Math.min(a.lng, b.lng),
+        max_lng: Math.max(a.lng, b.lng),
+      })
+    }
+
+    const onMouseDown = (event) => {
+      if (event.button !== 0) return
+      event.preventDefault()
+      map.dragPan.disable()
+      start = pointFor(event)
+      document.addEventListener('mousemove', onMouseMove)
+      document.addEventListener('mouseup', onMouseUp)
+    }
+
+    canvas.addEventListener('mousedown', onMouseDown)
+
+    return () => {
+      canvas.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      removeBox()
+      map.dragPan.enable()
+    }
+  }, [mapRef, active, onComplete, onCancel])
+
+  return null
+}
+
 function DraftPin() {
   return (
     <svg width="30" height="42" viewBox="0 0 30 42" className="draft-pin">
@@ -59,6 +142,9 @@ export default function MapView({
   onBoundsChanged,
   panTarget,
   userPosition,
+  selectingArea = false,
+  onAreaSelected,
+  onAreaCancel,
   children,
 }) {
   const reportBounds = useCallback(
@@ -83,12 +169,13 @@ export default function MapView({
         zoom: DEFAULT_ZOOM,
       }}
       style={{ width: '100%', height: '100%' }}
-      cursor={addMode ? 'crosshair' : 'grab'}
+      cursor={addMode || selectingArea ? 'crosshair' : 'grab'}
       onClick={(event) => onMapClick({ lat: event.lngLat.lat, lng: event.lngLat.lng })}
       onLoad={reportBounds}
       onMoveEnd={reportBounds}
     >
       <PanTo target={panTarget} />
+      <BoxSelect active={selectingArea} onComplete={onAreaSelected} onCancel={onAreaCancel} />
 
       {trees.map((tree) => (
         <Marker

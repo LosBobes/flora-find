@@ -25,6 +25,9 @@ fruit (or flowers) near you — built on [MapLibre GL](https://maplibre.org/) an
 - Community verification: "Still there / Gone" votes (one per user per tree), "last confirmed
   X days ago", and a ⚠️ flag once 3+ people report a tree gone
 - Only the person who registered a tree can edit or delete it
+- 🛠️ **Admin data export** — admins can drag a rectangle on the map and download every plant
+  inside it as GeoJSON or CSV
+- Ready-to-load sample data for Belgrade and Serbia (`backend/seed.py`)
 
 ## Getting started
 
@@ -42,6 +45,26 @@ uvicorn app.main:app --reload --port 8000
 
 API docs at http://localhost:8000/docs. The SQLite database (`florafind.db`) is created
 automatically on first start.
+
+#### Seed sample data (Belgrade & Serbia)
+
+To populate the map with ~37 real Belgrade parks/neighbourhoods (Kalemegdan, Ada Ciganlija,
+Tašmajdan, Košutnjak, Zemun, Topčider…) plus a few entries in Novi Sad, Niš and Subotica:
+
+```bash
+cd backend
+.venv/bin/python seed.py          # only seeds if the database has no plants yet
+.venv/bin/python seed.py --force  # add the sample plants even if others exist
+```
+
+This also creates two accounts:
+
+| Email | Password | Role |
+| --- | --- | --- |
+| `admin@florafind.rs` | `admin1234` | **admin** (can export map areas) |
+| `seed@florafind.rs` | `seed1234` | contributor (owns the seeded plants) |
+
+> Change these credentials before using the seed script anywhere public.
 
 ### 2. Frontend
 
@@ -71,6 +94,7 @@ Open http://localhost:5173 — the dev server proxies `/api/*` to the backend on
 | `GET` | `/api/auth/me` | ✅ | Current user |
 | `GET` | `/api/trees` | — | List/search trees (`q`, `fruit_type`, `ripe_now`, bbox `min_lat…max_lng`, radius `lat`+`lng`+`radius_km`) |
 | `GET` | `/api/trees/fruit-types` | — | Distinct fruit types (for filters) |
+| `GET` | `/api/trees/export` | ✅ admin | Export plants in an area (`min_lat`, `max_lat`, `min_lng`, `max_lng`, `format=geojson\|csv`) |
 | `GET` | `/api/trees/{id}` | — | Tree details |
 | `POST` | `/api/trees` | ✅ | Register a tree |
 | `PUT` | `/api/trees/{id}` | ✅ owner | Update own tree |

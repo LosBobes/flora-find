@@ -1,11 +1,15 @@
+import csv
+import io
+import json
 import math
 import secrets
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from ..auth import get_current_user
+from ..auth import get_current_admin, get_current_user
 from ..database import get_db
 from ..models import Tree, TreeConfirmation, TreePhoto, User, utcnow
 from ..schemas import ConfirmationCreate, PhotoOut, PlantCategory, TreeCreate, TreeOut, TreeUpdate
@@ -127,6 +131,109 @@ def fruit_types(category: PlantCategory | None = Query(default=None), db: Sessio
         query = query.filter(Tree.category == category)
     rows = query.order_by(Tree.fruit_type).all()
     return [row[0] for row in rows]
+
+
+EXPORT_FIELDS = [
+    "id", "name", "category", "fruit_type", "hazard", "species", "description",
+    "season_start", "season_end", "lat", "lng", "owner", "gone_reports",
+    "last_confirmed_at", "created_at",
+]
+
+
+def _iso(value) -> str | None:
+    return value.isoformat() if value is not None else None
+
+
+def _tree_record(tree: Tree) -> dict:
+    return {
+        "id": tree.id,
+        "name": tree.name,
+        "category": tree.category,
+        "fruit_type": tree.fruit_type,
+        "hazard": tree.hazard,
+        "species": tree.species,
+        "description": tree.description,
+        "season_start": tree.season_start,
+        "season_end": tree.season_end,
+        "lat": tree.lat,
+        "lng": tree.lng,
+        "owner": tree.owner.username if tree.owner else None,
+        "gone_reports": tree.gone_reports,
+        "last_confirmed_at": _iso(tree.last_confirmed_at),
+        "created_at": _iso(tree.created_at),
+    }
+
+
+def _trees_to_geojson(trees: list[Tree]) -> str:
+    features = []
+    for tree in trees:
+        record = _tree_record(tree)
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [tree.lng, tree.lat]},
+                "properties": {k: v for k, v in record.items() if k not in ("lat", "lng")},
+            }
+        )
+    return json.dumps({"type": "FeatureCollection", "features": features}, ensure_ascii=False)
+
+
+def _trees_to_csv(trees: list[Tree]) -> str:
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=EXPORT_FIELDS, extrasaction="ignore")
+    writer.writeheader()
+    for tree in trees:
+        record = _tree_record(tree)
+        # Keep descriptions on a single CSV line.
+        if record.get("description"):
+            record["description"] = " ".join(record["description"].split())
+        writer.writerow({k: ("" if v is None else v) for k, v in record.items()})
+    return buffer.getvalue()
+
+
+@router.get("/export")
+def export_trees(
+    min_lat: float = Query(..., ge=-90, le=90, description="South edge of the area"),
+    max_lat: float = Query(..., ge=-90, le=90, description="North edge of the area"),
+    min_lng: float = Query(..., ge=-180, le=180, description="West edge of the area"),
+    max_lng: float = Query(..., ge=-180, le=180, description="East edge of the area"),
+    format: Literal["geojson", "csv"] = Query("geojson", description="Export file format"),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Admin-only: export every plant inside a map rectangle as GeoJSON or CSV."""
+    if min_lat > max_lat:
+        raise HTTPException(status_code=400, detail="min_lat must be <= max_lat")
+
+    query = (
+        db.query(Tree)
+        .options(joinedload(Tree.owner), selectinload(Tree.confirmations))
+        .filter(Tree.lat >= min_lat, Tree.lat <= max_lat)
+    )
+    if min_lng <= max_lng:
+        query = query.filter(Tree.lng >= min_lng, Tree.lng <= max_lng)
+    else:
+        # Area crosses the antimeridian.
+        query = query.filter(or_(Tree.lng >= min_lng, Tree.lng <= max_lng))
+    trees = query.order_by(Tree.created_at.desc()).all()
+
+    if format == "csv":
+        content = _trees_to_csv(trees)
+        media_type = "text/csv"
+        filename = "florafind-export.csv"
+    else:
+        content = _trees_to_geojson(trees)
+        media_type = "application/geo+json"
+        filename = "florafind-export.geojson"
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Export-Count": str(len(trees)),
+        },
+    )
 
 
 @router.get("/{tree_id}", response_model=TreeOut)

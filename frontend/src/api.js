@@ -92,4 +92,50 @@ export const api = {
   },
   deletePhoto: (treeId, photoId) =>
     request(`/api/trees/${treeId}/photos/${photoId}`, { method: 'DELETE', auth: true }),
+
+  // Admin-only: export every plant inside a map rectangle. Returns the file as a
+  // Blob plus a suggested filename and how many plants it contains.
+  exportArea: async (bounds, format = 'geojson') => {
+    const qs = new URLSearchParams({
+      min_lat: bounds.min_lat,
+      max_lat: bounds.max_lat,
+      min_lng: bounds.min_lng,
+      max_lng: bounds.max_lng,
+      format,
+    })
+    const headers = {}
+    const token = getToken()
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const resp = await fetch(`/api/trees/export?${qs}`, { headers })
+    if (!resp.ok) {
+      let detail
+      try {
+        detail = (await resp.json())?.detail
+      } catch {
+        /* non-JSON error body */
+      }
+      const error = new Error(typeof detail === 'string' ? detail : `Export failed (${resp.status})`)
+      error.status = resp.status
+      throw error
+    }
+
+    const text = await resp.text()
+    let count = Number(resp.headers.get('X-Export-Count'))
+    if (!Number.isFinite(count)) {
+      try {
+        count = format === 'geojson'
+          ? JSON.parse(text).features.length
+          : Math.max(0, text.trim().split('\n').length - 1)
+      } catch {
+        count = 0
+      }
+    }
+    const type = format === 'geojson' ? 'application/geo+json' : 'text/csv'
+    return {
+      blob: new Blob([text], { type }),
+      count,
+      filename: `florafind-export.${format === 'geojson' ? 'geojson' : 'csv'}`,
+    }
+  },
 }

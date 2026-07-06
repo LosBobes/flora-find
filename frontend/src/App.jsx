@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext'
 import { PLANT_CATEGORIES, fruitEmoji, plantEmoji } from './fruitIcons'
 import { formatSeason } from './seasons'
 import AuthModal from './components/AuthModal'
+import ExportPanel from './components/ExportPanel'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
@@ -33,6 +34,8 @@ export default function App() {
   const [draftPosition, setDraftPosition] = useState(null)
   const [editingTree, setEditingTree] = useState(null)
   const [notice, setNotice] = useState(null)
+  const [selectingArea, setSelectingArea] = useState(false)
+  const [exportArea, setExportArea] = useState(null)
 
   const boundsRef = useRef(null)
   const debounceRef = useRef(null)
@@ -94,10 +97,28 @@ export default function App() {
       setAuthModal('login')
       return
     }
+    setSelectingArea(false)
     setAddMode(true)
     setSelectedTree(null)
     setEditingTree(null)
     setDraftPosition(null)
+  }
+
+  function toggleSelectArea() {
+    if (selectingArea) {
+      setSelectingArea(false)
+      return
+    }
+    setAddMode(false)
+    setDraftPosition(null)
+    setExportArea(null)
+    setSelectingArea(true)
+    showNotice('Drag a rectangle on the map to select the area to export.')
+  }
+
+  function handleAreaSelected(area) {
+    setSelectingArea(false)
+    setExportArea(area)
   }
 
   function handleMapClick(latLng) {
@@ -237,7 +258,10 @@ export default function App() {
         <div className="user-controls">
           {user ? (
             <>
-              <span className="hello">Hi, {user.username}</span>
+              <span className="hello">
+                Hi, {user.username}
+                {user.is_admin && <span className="admin-badge">admin</span>}
+              </span>
               <button className="btn" onClick={logout}>
                 Log out
               </button>
@@ -273,6 +297,18 @@ export default function App() {
           >
             {locating ? 'Locating…' : nearMe ? '✕ Leave near me' : '📍 Near me'}
           </button>
+          {user?.is_admin && (
+            <button
+              className={`btn btn-export${selectingArea ? ' active' : ''}`}
+              onClick={toggleSelectArea}
+              title="Admin: export plant data for an area of the map"
+            >
+              {selectingArea ? '✕ Cancel export' : '⬛ Export area'}
+            </button>
+          )}
+          {selectingArea && (
+            <p className="hint">Drag a rectangle on the map to select an area.</p>
+          )}
           <h2 className="sidebar-title">
             {trees.length} plant{trees.length === 1 ? '' : 's'}
             {nearMe
@@ -324,6 +360,9 @@ export default function App() {
             onBoundsChanged={handleBoundsChanged}
             panTarget={panTarget}
             userPosition={nearMe}
+            selectingArea={selectingArea}
+            onAreaSelected={handleAreaSelected}
+            onAreaCancel={() => setSelectingArea(false)}
           >
             {selectedTree && (
               <TreeDetails
@@ -352,6 +391,15 @@ export default function App() {
                 initial={editingTree}
                 onSubmit={handleUpdate}
                 onCancel={() => setEditingTree(null)}
+              />
+            </div>
+          )}
+          {exportArea && (
+            <div className="form-panel">
+              <ExportPanel
+                area={exportArea}
+                onClose={() => setExportArea(null)}
+                onNotice={showNotice}
               />
             </div>
           )}
