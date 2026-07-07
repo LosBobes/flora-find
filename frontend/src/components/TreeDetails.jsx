@@ -1,5 +1,5 @@
 import { categoryInfo, plantColor } from '../fruitIcons'
-import { PlantIcon, HazardBadge, SeasonBadge, GoneBadge } from '../icons'
+import { PlantIcon, HazardBadge, GoneBadge } from '../icons'
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { formatSeason, seasonMonths } from '../seasons'
@@ -122,30 +122,23 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
               {isFruit ? t('fruitLabel') : t('typeLabel')}
             </dt>
             <dd className="min-w-0 break-words text-forest-800 dark:text-forest-100">
-              {localizedType(tree.fruit_type)}
-              {tree.species && <span className="italic text-forest-500 dark:text-forest-400"> · {tree.species}</span>}
+              <span className="font-medium">{localizedType(tree.fruit_type)}</span>
+              {tree.species && (
+                <span className="italic text-forest-400 dark:text-forest-500"> ({tree.species})</span>
+              )}
               {!isFruit && (
-                <span className="text-forest-500 dark:text-forest-400"> · {t(categoryInfo(tree.category).labelKey)}</span>
+                <span className="ml-1.5 inline-block rounded-full bg-forest-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-forest-600 dark:bg-white/10 dark:text-forest-300">
+                  {t(categoryInfo(tree.category).labelKey)}
+                </span>
               )}
             </dd>
           </div>
 
           {season && (
             <div>
-              <div className="flex items-center gap-2">
-                <dt className="shrink-0 font-semibold text-forest-500 dark:text-forest-300">
-                  {isFlowerbed ? t('bloomsLabel') : t('seasonLabel')}
-                </dt>
-                <dd className="flex items-center gap-1.5 font-medium text-forest-800 dark:text-forest-100">
-                  {season}
-                  {tree.in_season && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-forest-100 px-1.5 py-0.5 text-[11px] font-semibold text-forest-700 dark:bg-forest-500/20 dark:text-forest-200">
-                      <SeasonBadge size={13} />
-                      {isFlowerbed ? t('bloomingBadge') : t('inSeasonBadge')}
-                    </span>
-                  )}
-                </dd>
-              </div>
+              <dt className="font-semibold text-forest-500 dark:text-forest-300">
+                {isFlowerbed ? t('bloomsLabel') : t('seasonLabel')}
+              </dt>
               <SeasonStrip tree={tree} monthsShort={monthsShort} accent={accent} />
             </div>
           )}

@@ -20,31 +20,37 @@ function PanToSelected({ tree }) {
   useEffect(() => {
     if (!map || !tree) return
     const m = map.getMap ? map.getMap() : map
-    const id = requestAnimationFrame(() => {
-      const container = m.getContainer()
-      const popup = container.querySelector('.maplibregl-popup-content')
-      const point = m.project([tree.lng, tree.lat])
-      const pad = 12
-      const markerOffset = 26
-      const popupH = popup ? popup.offsetHeight : 320
-      const popupW = popup ? popup.offsetWidth : 280
-      const halfW = popupW / 2
+    let raf2 = 0
+    // Two frames so the popup is fully laid out before we measure its real box
+    // (the hazard card is the tallest, so an estimate would clip it).
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const container = m.getContainer()
+        const popupEl = container.querySelector('.maplibregl-popup')
+        if (!popupEl) return
+        const c = container.getBoundingClientRect()
+        const p = popupEl.getBoundingClientRect()
+        const pad = 12
 
-      let tx = point.x
-      let ty = point.y
-      const neededTop = popupH + markerOffset + pad
-      if (ty < neededTop) ty = neededTop
-      if (ty > container.clientHeight - pad) ty = container.clientHeight - pad
-      const minX = halfW + pad
-      const maxX = container.clientWidth - halfW - pad
-      if (minX < maxX) tx = Math.min(Math.max(point.x, minX), maxX)
+        let dy = 0
+        if (p.top < c.top + pad) dy = c.top + pad - p.top
+        else if (p.bottom > c.bottom - pad) dy = c.bottom - pad - p.bottom
 
-      if (Math.abs(tx - point.x) < 1 && Math.abs(ty - point.y) < 1) return
-      const center = m.project(m.getCenter())
-      const newCenter = m.unproject([center.x - (tx - point.x), center.y - (ty - point.y)])
-      m.easeTo({ center: newCenter, duration: 320 })
+        let dx = 0
+        if (p.left < c.left + pad) dx = c.left + pad - p.left
+        else if (p.right > c.right - pad) dx = c.right - pad - p.right
+
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return
+        // Shift the map so the popup box moves by (dx, dy) on screen.
+        const center = m.project(m.getCenter())
+        const newCenter = m.unproject([center.x - dx, center.y - dy])
+        m.easeTo({ center: newCenter, duration: 320 })
+      })
     })
-    return () => cancelAnimationFrame(id)
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+    }
   }, [map, tree])
   return null
 }

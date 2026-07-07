@@ -5,6 +5,7 @@ import { plantColor } from '../fruitIcons'
 import { formatSeason } from '../seasons'
 import { BlurFade } from '../ui/blur-fade'
 import { NumberTicker } from '../ui/number-ticker'
+import { Tooltip } from '../ui/tooltip'
 import { cn } from '../lib/utils'
 
 function formatDistance(km) {
@@ -39,16 +40,28 @@ export default function PlantList({ trees, selectedTree, onSelect, countSuffix }
             >
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0 right-0 w-2/3 rounded-r-2xl opacity-20 transition-opacity duration-300 group-hover:opacity-100"
+                className="pointer-events-none absolute inset-y-0 right-0 w-2/3 rounded-r-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 style={{ background: `linear-gradient(to right, transparent, ${plantColor(tree)}cc)` }}
               />
               <PlantIcon tree={tree} size={32} className="relative block shrink-0" />
               <span className="relative min-w-0 flex-1">
                 <span className="flex items-center gap-1.5 font-semibold text-forest-900 dark:text-forest-50">
                   <span className="truncate">{plantName(tree.name)}</span>
-                  {tree.hazard && <HazardBadge size={16} className="shrink-0" title={t('tipHazard')} />}
-                  {tree.in_season && <SeasonBadge size={16} className="shrink-0" title={t('tipInSeason')} />}
-                  {tree.flagged_gone && <GoneBadge size={16} className="shrink-0" title={t('tipGone')} />}
+                  {tree.hazard && (
+                    <Tooltip label={t('tipHazard')} className="shrink-0">
+                      <HazardBadge size={16} />
+                    </Tooltip>
+                  )}
+                  {tree.in_season && (
+                    <Tooltip label={t('tipInSeason')} className="shrink-0">
+                      <SeasonBadge size={16} />
+                    </Tooltip>
+                  )}
+                  {tree.flagged_gone && (
+                    <Tooltip label={t('tipGone')} className="shrink-0">
+                      <GoneBadge size={16} />
+                    </Tooltip>
+                  )}
                 </span>
                 <span className="block truncate text-xs text-forest-500 dark:text-forest-300">
                   {localizedType(tree.fruit_type)}
