@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Map, Marker, Popup, useMap } from '@vis.gl/react-maplibre'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { PlantIcon } from '../icons'
 import { useI18n } from '../i18n'
@@ -184,6 +184,16 @@ export default function MapView({
   const { localized: localizedType } = usePlantTypes()
   const { theme, markerPx, showLabels, isDark } = useMapSettings()
   const mapStyle = useMemo(() => buildBasemapStyle(theme), [theme])
+
+  // Keep the popup mounted through its exit animation: `shownTree` lingers after
+  // `selectedTree` clears until AnimatePresence reports the card has left.
+  const [shownTree, setShownTree] = useState(null)
+  const selectedRef = useRef(selectedTree)
+  selectedRef.current = selectedTree
+  useEffect(() => {
+    if (selectedTree) setShownTree(selectedTree)
+  }, [selectedTree])
+
   const reportBounds = useCallback((event) => {
     const bounds = event.target.getBounds()
     onBoundsChanged({
@@ -288,17 +298,30 @@ export default function MapView({
         </Marker>
       )}
 
-      {selectedTree && (
+      {shownTree && (
         <Popup
-          longitude={selectedTree.lng}
-          latitude={selectedTree.lat}
+          longitude={shownTree.lng}
+          latitude={shownTree.lat}
           anchor="bottom"
           offset={22}
           maxWidth="300px"
           closeOnClick={false}
           onClose={() => onSelectTree(null)}
         >
-          {children}
+          <AnimatePresence onExitComplete={() => { if (!selectedRef.current) setShownTree(null) }}>
+            {selectedTree && (
+              <motion.div
+                key={selectedTree.id}
+                initial={{ opacity: 0, scale: 0.8, y: 16, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.9, y: 8, filter: 'blur(6px)', transition: { duration: 0.18, ease: 'easeIn' } }}
+                transition={{ type: 'spring', stiffness: 260, damping: 18, mass: 0.7 }}
+                style={{ transformOrigin: 'bottom center' }}
+              >
+                {children}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Popup>
       )}
     </Map>

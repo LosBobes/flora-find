@@ -31,16 +31,19 @@ export default function PlantList({ trees, selectedTree, onSelect, countSuffix }
             <li
               onClick={() => onSelect(tree)}
               className={cn(
-                'group relative flex cursor-pointer items-center gap-3 overflow-hidden rounded-2xl border border-forest-100 bg-white p-2.5 pl-4 shadow-sm transition',
+                'group relative flex cursor-pointer items-center gap-3 overflow-hidden rounded-2xl border bg-white p-2.5 pl-4 shadow-sm transition',
                 'hover:-translate-y-0.5 hover:shadow-md',
-                'dark:border-white/10 dark:bg-white/5',
-                selectedTree?.id === tree.id &&
-                  'ring-2 ring-forest-400 dark:ring-forest-300',
+                selectedTree?.id === tree.id
+                  ? 'border-forest-500 ring-1 ring-forest-500 dark:border-forest-300 dark:ring-forest-300'
+                  : 'border-forest-100 dark:border-white/10 dark:bg-white/5',
               )}
             >
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0 right-0 w-2/3 rounded-r-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                className={cn(
+                  'pointer-events-none absolute inset-y-0 right-0 w-2/3 rounded-r-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+                  selectedTree?.id === tree.id && 'opacity-40',
+                )}
                 style={{ background: `linear-gradient(to right, transparent, ${plantColor(tree)}cc)` }}
               />
               <PlantIcon tree={tree} size={32} className="relative block shrink-0" />

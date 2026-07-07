@@ -1,8 +1,10 @@
+import { motion } from 'motion/react'
 import { categoryInfo, plantColor } from '../fruitIcons'
 import { PlantIcon, HazardBadge, GoneBadge } from '../icons'
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { formatSeason, seasonMonths } from '../seasons'
+import { BorderBeam } from '../ui/border-beam'
 import { cn } from '../lib/utils'
 
 function useDaysAgo() {
@@ -96,7 +98,22 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
     : null
 
   return (
-    <div className="w-[272px] max-w-[82vw] overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a]">
+    <div className="relative w-[272px] max-w-[82vw] overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a]">
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-10 rounded-2xl"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 0] }}
+        transition={{ duration: 0.9, times: [0, 0.3, 1], ease: 'easeOut' }}
+        style={{ boxShadow: `inset 0 0 0 1.5px ${accent}, 0 0 24px 2px ${accent}66` }}
+      />
+      <BorderBeam
+        size={45}
+        duration={5}
+        colorFrom={accent}
+        colorTo={accent}
+        className="z-20 blur-[1px]"
+      />
       <div className="p-4 pb-3">
         <h3 className="mb-1.5 flex items-start gap-2 pr-5 text-base font-bold leading-snug text-forest-900 dark:text-forest-50">
           <PlantIcon tree={tree} size={26} className="mt-0.5 shrink-0" />

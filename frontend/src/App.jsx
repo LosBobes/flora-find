@@ -327,7 +327,9 @@ export default function App() {
           <MapView
             trees={trees}
             selectedTree={selectedTree}
-            onSelectTree={setSelectedTree}
+            onSelectTree={(tree) =>
+              setSelectedTree((cur) => (tree && cur?.id === tree.id ? null : tree))
+            }
             addMode={addMode}
             draftPosition={draftPosition}
             onMapClick={handleMapClick}
