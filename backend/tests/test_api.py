@@ -51,6 +51,22 @@ def auth_headers(token):
     return {"Authorization": f"Bearer {token}"}
 
 
+def ensure_plant_type(category, fruit_type):
+    """Register a plant type directly (as the app's backfill/admin would) so a
+    tree that uses it passes the vocabulary check."""
+    from app.database import SessionLocal
+    from app.models import PlantType
+
+    db = SessionLocal()
+    try:
+        wanted = fruit_type.strip().lower()
+        if not any(pt.canonical.strip().lower() == wanted for pt in db.query(PlantType).all()):
+            db.add(PlantType(category=category, names={"en": fruit_type, "sr": fruit_type}))
+            db.commit()
+    finally:
+        db.close()
+
+
 def make_tree(token, **overrides):
     body = {
         "name": "Old cherry by the school",
@@ -62,6 +78,7 @@ def make_tree(token, **overrides):
         "season_end": 6,
     }
     body.update(overrides)
+    ensure_plant_type(body.get("category", "fruit_tree"), body["fruit_type"])
     resp = client.post("/api/trees", json=body, headers=auth_headers(token))
     assert resp.status_code == 201, resp.text
     return resp.json()
@@ -679,3 +696,83 @@ def test_is_admin_migration_adds_column():
 
     # Running again is a no-op.
     run_migrations(engine)
+
+
+# --- Plant types (managed vocabulary) ---
+
+
+def add_plant_type(token, category, names):
+    return client.post(
+        "/api/plant-types",
+        json={"category": category, "names": names},
+        headers=auth_headers(token),
+    )
+
+
+def test_unknown_plant_type_rejected():
+    token = register()["access_token"]
+    resp = client.post(
+        "/api/trees",
+        json={"name": "Mystery", "category": "fruit_tree", "fruit_type": "Dragonfruit",
+              "lat": 44.8, "lng": 20.4},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 400
+
+
+def test_plant_types_listed_and_filtered_by_category():
+    token = register()["access_token"]
+    make_tree(token, fruit_type="Cherry")
+    make_tree(token, name="Oak", category="tree", fruit_type="Oak")
+
+    resp = client.get("/api/plant-types")
+    assert resp.status_code == 200
+    canon = sorted(pt["names"]["en"] for pt in resp.json())
+    assert canon == ["Cherry", "Oak"]
+
+    resp = client.get("/api/plant-types", params={"category": "tree"})
+    assert [pt["names"]["en"] for pt in resp.json()] == ["Oak"]
+
+
+def test_admin_adds_type_then_it_can_be_used():
+    token = register()["access_token"]
+    make_admin()
+
+    resp = add_plant_type(token, "vine", {"en": "Kiwi", "sr": "Kivi"})
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["names"] == {"en": "Kiwi", "sr": "Kivi"}
+
+    # The new type now passes the vocabulary check for a plant.
+    resp = client.post(
+        "/api/trees",
+        json={"name": "Kiwi vine", "category": "vine", "fruit_type": "Kiwi",
+              "lat": 44.8, "lng": 20.4},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 201
+
+
+def test_add_plant_type_requires_admin():
+    token = register()["access_token"]
+    resp = add_plant_type(token, "vine", {"en": "Kiwi", "sr": "Kivi"})
+    assert resp.status_code == 403
+
+    resp = client.post(
+        "/api/plant-types", json={"category": "vine", "names": {"en": "Kiwi", "sr": "Kivi"}}
+    )
+    assert resp.status_code == 401
+
+
+def test_add_plant_type_requires_every_language():
+    token = register()["access_token"]
+    make_admin()
+    resp = add_plant_type(token, "vine", {"en": "Kiwi"})
+    assert resp.status_code == 422
+
+
+def test_duplicate_plant_type_rejected():
+    token = register()["access_token"]
+    make_admin()
+    assert add_plant_type(token, "fruit_tree", {"en": "Cherry", "sr": "Trešnja"}).status_code == 201
+    # Same canonical name, any casing, is a conflict.
+    assert add_plant_type(token, "tree", {"en": "cherry", "sr": "Trešnja"}).status_code == 409

@@ -1,9 +1,14 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
+
+# Languages the app is translated into. A plant type must carry a name for every
+# one of these (see PlantType.names) so the map reads natively in either mode.
+SUPPORTED_LANGUAGES = ("en", "sr")
+DEFAULT_LANGUAGE = "en"
 
 
 def utcnow() -> datetime:
@@ -91,6 +96,27 @@ class Tree(Base):
         return self.gone_reports >= GONE_FLAG_THRESHOLD
 
 
+class PlantType(Base):
+    """The controlled vocabulary of plant/fruit types a plant can be tagged with.
+
+    Regular users pick a type from this list; only admins can add new ones, and
+    when they do they must supply a name in every supported language. The English
+    name is the canonical value stored in ``Tree.fruit_type``.
+    """
+
+    __tablename__ = "plant_types"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    category: Mapped[str] = mapped_column(String(20), index=True)
+    # {"en": "Cherry", "sr": "Trešnja"}, one entry per SUPPORTED_LANGUAGES.
+    names: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    @property
+    def canonical(self) -> str:
+        return self.names.get(DEFAULT_LANGUAGE, "")
+
+
 class TreeConfirmation(Base):
     __tablename__ = "tree_confirmations"
     __table_args__ = (UniqueConstraint("tree_id", "user_id", name="uq_confirmation_tree_user"),)
@@ -111,6 +137,11 @@ class TreePhoto(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     filename: Mapped[str] = mapped_column(String(255), unique=True)
     content_type: Mapped[str] = mapped_column(String(80))
+    # For photos imported from an external library (e.g. a representative species
+    # image from Wikimedia Commons) we must keep the credit + source the licence
+    # requires. User-uploaded photos leave these null.
+    attribution: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     tree_id: Mapped[int] = mapped_column(ForeignKey("trees.id"), index=True)

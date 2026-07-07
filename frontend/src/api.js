@@ -74,6 +74,13 @@ export const api = {
   },
   fruitTypes: (category) =>
     request(`/api/trees/fruit-types${category ? `?category=${encodeURIComponent(category)}` : ''}`),
+
+  // Managed plant-type vocabulary. Listing is public; creating is admin-only.
+  listPlantTypes: (category) =>
+    request(`/api/plant-types${category ? `?category=${encodeURIComponent(category)}` : ''}`),
+  createPlantType: (payload) =>
+    request('/api/plant-types', { method: 'POST', body: payload, auth: true }),
+
   createTree: (tree) => request('/api/trees', { method: 'POST', body: tree, auth: true }),
   updateTree: (id, tree) => request(`/api/trees/${id}`, { method: 'PUT', body: tree, auth: true }),
   deleteTree: (id) => request(`/api/trees/${id}`, { method: 'DELETE', auth: true }),

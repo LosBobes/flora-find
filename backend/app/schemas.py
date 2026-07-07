@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+
+from .models import SUPPORTED_LANGUAGES
 
 
 class UserCreate(BaseModel):
@@ -31,6 +33,29 @@ class TokenOut(BaseModel):
 
 
 PlantCategory = Literal["fruit_tree", "tree", "shrub", "flowerbed", "vine", "other"]
+
+
+class PlantTypeCreate(BaseModel):
+    category: PlantCategory
+    # A display name for every supported language, e.g. {"en": "Cherry", "sr": "Trešnja"}.
+    names: dict[str, str]
+
+    @field_validator("names")
+    @classmethod
+    def all_languages_present(cls, value: dict[str, str]) -> dict[str, str]:
+        cleaned = {lang: (value.get(lang) or "").strip() for lang in SUPPORTED_LANGUAGES}
+        missing = [lang for lang, name in cleaned.items() if not name]
+        if missing:
+            raise ValueError(f"A name is required for every language: missing {', '.join(missing)}")
+        return cleaned
+
+
+class PlantTypeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    category: PlantCategory
+    names: dict[str, str]
 
 
 class TreeBase(BaseModel):
@@ -87,6 +112,8 @@ class PhotoOut(BaseModel):
     id: int
     url: str
     content_type: str
+    attribution: str | None = None
+    source_url: str | None = None
 
 
 class TreeOut(TreeBase):

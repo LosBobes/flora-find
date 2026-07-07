@@ -6,6 +6,7 @@ venv/
 *.db
 .pytest_cache/
 uploads/
+.florafind_cache/
 
 # Node
 node_modules/

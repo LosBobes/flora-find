@@ -1,22 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { api } from './api'
 import { useAuth } from './AuthContext'
-import { PLANT_CATEGORIES, fruitEmoji, plantEmoji } from './fruitIcons'
-import { formatSeason } from './seasons'
+import { useI18n } from './i18n'
 import AuthModal from './components/AuthModal'
 import ExportPanel from './components/ExportPanel'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
+import TopNav from './components/TopNav'
+import PlantList from './components/PlantList'
+import MapSettingsControl from './components/MapSettingsControl'
+import MobileDock from './components/MobileDock'
+import BottomSheet from './components/BottomSheet'
+import { ShimmerButton } from './ui/shimmer-button'
+import { cn } from './lib/utils'
 
 const NEAR_ME_RADIUS_KM = 5
 
-function formatDistance(km) {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+// A floating map panel (form / details / export). Rounded card with a travelling
+// border beam; top-right on desktop, a bottom card on mobile (above the dock).
+function FloatingPanel({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 12, scale: 0.98 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="beam-border absolute inset-x-3 bottom-24 z-40 max-h-[68vh] overflow-y-auto rounded-2xl border border-forest-100 bg-white p-5 shadow-card dark:border-white/10 dark:bg-[#12241a] md:inset-x-auto md:bottom-auto md:right-3 md:top-3 md:w-[360px]"
+    >
+      {children}
+    </motion.div>
+  )
 }
 
 export default function App() {
   const { user, logout } = useAuth()
+  const { t, name: plantName } = useI18n()
 
   const [trees, setTrees] = useState([])
   const [fruitTypes, setFruitTypes] = useState([])
@@ -49,13 +69,10 @@ export default function App() {
     }
     const bounds = boundsRef.current
     if (nearMe) {
-      // Radius search from the user's position; results come back distance-sorted.
       params.lat = nearMe.lat
       params.lng = nearMe.lng
       params.radius_km = NEAR_ME_RADIUS_KM
     } else if (bounds && !searchText) {
-      // Only constrain to the viewport when not doing a text search, so
-      // searches can find trees anywhere.
       params.min_lat = bounds.south
       params.max_lat = bounds.north
       params.min_lng = bounds.west
@@ -73,7 +90,6 @@ export default function App() {
   }, [refreshTrees])
 
   useEffect(() => {
-    // Scope the type dropdown to the selected category (e.g. only fruits).
     api.fruitTypes(categoryFilter || undefined).then(setFruitTypes).catch(() => {})
     setFruitFilter('')
   }, [categoryFilter])
@@ -104,6 +120,15 @@ export default function App() {
     setDraftPosition(null)
   }
 
+  function toggleAddMode() {
+    if (addMode) {
+      setAddMode(false)
+      setDraftPosition(null)
+    } else {
+      startAddMode()
+    }
+  }
+
   function toggleSelectArea() {
     if (selectingArea) {
       setSelectingArea(false)
@@ -113,7 +138,7 @@ export default function App() {
     setDraftPosition(null)
     setExportArea(null)
     setSelectingArea(true)
-    showNotice('Drag a rectangle on the map to select the area to export.')
+    showNotice(t('dragToSelectNotice'))
   }
 
   function handleAreaSelected(area) {
@@ -131,12 +156,12 @@ export default function App() {
 
   async function handleCreate(payload, photos) {
     const created = await api.createTree(payload)
-    let message = `Registered “${created.name}” 🌱`
+    let message = t('registeredNotice', { name: created.name })
     if (photos?.length) {
       try {
         created.photos = await api.uploadPhotos(created.id, photos)
       } catch (err) {
-        message = `Tree saved, but photo upload failed: ${err.message}`
+        message = t('photoUploadFailed', { message: err.message })
       }
     }
     setAddMode(false)
@@ -151,16 +176,16 @@ export default function App() {
     const updated = await api.updateTree(editingTree.id, payload)
     setEditingTree(null)
     setSelectedTree(updated)
-    showNotice('Plant updated ✓')
+    showNotice(t('plantUpdated'))
     refreshTrees()
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Delete “${selectedTree.name}”?`)) return
+    if (!window.confirm(t('confirmDelete', { name: plantName(selectedTree.name) }))) return
     try {
       await api.deleteTree(selectedTree.id)
       setSelectedTree(null)
-      showNotice('Plant deleted')
+      showNotice(t('plantDeleted'))
       refreshTrees()
     } catch (err) {
       showNotice(err.message)
@@ -173,7 +198,7 @@ export default function App() {
       return
     }
     if (!navigator.geolocation) {
-      showNotice('Geolocation is not supported by this browser')
+      showNotice(t('geolocationUnsupported'))
       return
     }
     setLocating(true)
@@ -186,7 +211,7 @@ export default function App() {
       },
       (err) => {
         setLocating(false)
-        showNotice(`Could not get your location: ${err.message}`)
+        showNotice(t('locationError', { message: err.message }))
       },
       { enableHighAccuracy: true, timeout: 10000 },
     )
@@ -200,7 +225,7 @@ export default function App() {
     try {
       const updated = await api.confirmTree(selectedTree.id, status)
       setSelectedTree(updated)
-      showNotice(status === 'present' ? 'Thanks for confirming! 👍' : 'Noted — thanks for reporting.')
+      showNotice(status === 'present' ? t('thanksConfirming') : t('thanksReporting'))
       refreshTrees()
     } catch (err) {
       showNotice(err.message)
@@ -212,144 +237,93 @@ export default function App() {
     setPanTarget({ lat: tree.lat, lng: tree.lng, ts: Date.now() })
   }
 
-  return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">🌳 FloraFind</div>
-        <div className="search-controls">
-          <input
-            className="search-input"
-            placeholder="Search plants, fruits, notes…"
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-          <select
-            className="fruit-select"
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-          >
-            <option value="">All categories</option>
-            {PLANT_CATEGORIES.map((entry) => (
-              <option key={entry.value} value={entry.value}>
-                {entry.emoji} {entry.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className="fruit-select"
-            value={fruitFilter}
-            onChange={(event) => setFruitFilter(event.target.value)}
-          >
-            <option value="">All types</option>
-            {fruitTypes.map((fruit) => (
-              <option key={fruit} value={fruit}>
-                {fruitEmoji(fruit)} {fruit}
-              </option>
-            ))}
-          </select>
-          <button
-            className={`btn btn-toggle${ripeNow ? ' active' : ''}`}
-            onClick={() => setRipeNow((value) => !value)}
-            title="Only show plants currently in season or bloom"
-          >
-            🟢 In season
-          </button>
-        </div>
-        <div className="user-controls">
-          {user ? (
-            <>
-              <span className="hello">
-                Hi, {user.username}
-                {user.is_admin && <span className="admin-badge">admin</span>}
-              </span>
-              <button className="btn" onClick={logout}>
-                Log out
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="btn" onClick={() => setAuthModal('login')}>
-                Log in
-              </button>
-              <button className="btn btn-primary" onClick={() => setAuthModal('register')}>
-                Register
-              </button>
-            </>
-          )}
-        </div>
-      </header>
+  const countSuffix = nearMe
+    ? t('withinKm', { km: NEAR_ME_RADIUS_KM })
+    : searchText
+      ? t('matchingSuffix')
+      : t('inViewSuffix')
 
-      <div className="content">
-        <aside className="sidebar">
-          <button
-            className={`btn btn-add ${addMode ? 'btn-danger' : 'btn-primary'}`}
-            onClick={addMode ? () => { setAddMode(false); setDraftPosition(null) } : startAddMode}
-          >
-            {addMode ? '✕ Cancel adding' : '+ Register a plant'}
-          </button>
+  const filterProps = {
+    searchText,
+    setSearchText,
+    categoryFilter,
+    setCategoryFilter,
+    fruitFilter,
+    setFruitFilter,
+    fruitTypes,
+    ripeNow,
+    setRipeNow,
+  }
+
+  return (
+    <div className="flex h-full flex-col bg-forest-50 dark:bg-[#0e1f14]">
+      <TopNav
+        filterProps={filterProps}
+        onLogin={() => setAuthModal('login')}
+        onRegister={() => setAuthModal('register')}
+      />
+
+      <div className="relative flex min-h-0 flex-1">
+        {/* Desktop sidebar */}
+        <aside className="hidden w-[320px] shrink-0 flex-col gap-3 border-r border-forest-100 bg-white/60 p-4 dark:border-white/10 dark:bg-white/5 md:flex">
+          {addMode ? (
+            <button
+              type="button"
+              onClick={toggleAddMode}
+              className="w-full rounded-full border border-red-200 bg-red-50 px-5 py-2.5 font-semibold text-red-600 transition hover:bg-red-100"
+            >
+              × {t('cancelAdding')}
+            </button>
+          ) : (
+            <ShimmerButton className="w-full" onClick={startAddMode}>
+              + {t('registerPlant')}
+            </ShimmerButton>
+          )}
           {addMode && !draftPosition && (
-            <p className="hint">Click on the map where the plant grows.</p>
+            <p className="rounded-xl bg-forest-100 px-3 py-2 text-sm text-forest-700 dark:bg-white/10 dark:text-forest-100">
+              {t('clickToPlace')}
+            </p>
           )}
           <button
-            className={`btn btn-near-me${nearMe ? ' active' : ''}`}
+            type="button"
             onClick={handleNearMe}
             disabled={locating}
+            className={cn(
+              'w-full rounded-full border px-4 py-2 text-sm font-semibold transition',
+              nearMe
+                ? 'border-blue-500 bg-blue-50 text-blue-600'
+                : 'border-forest-200 bg-white text-forest-700 hover:bg-forest-50 dark:border-white/15 dark:bg-white/5 dark:text-forest-100 dark:hover:bg-white/10',
+            )}
           >
-            {locating ? 'Locating…' : nearMe ? '✕ Leave near me' : '📍 Near me'}
+            {locating ? t('locating') : nearMe ? `× ${t('leaveNearMe')}` : t('nearMe')}
           </button>
           {user?.is_admin && (
             <button
-              className={`btn btn-export${selectingArea ? ' active' : ''}`}
+              type="button"
               onClick={toggleSelectArea}
-              title="Admin: export plant data for an area of the map"
+              className={cn(
+                'w-full rounded-full border px-4 py-2 text-sm font-semibold transition',
+                selectingArea
+                  ? 'border-orange-500 bg-orange-50 text-orange-600'
+                  : 'border-forest-200 bg-white text-forest-700 hover:bg-forest-50 dark:border-white/15 dark:bg-white/5 dark:text-forest-100 dark:hover:bg-white/10',
+              )}
             >
-              {selectingArea ? '✕ Cancel export' : '⬛ Export area'}
+              {selectingArea ? `× ${t('cancelExport')}` : t('exportArea')}
             </button>
           )}
           {selectingArea && (
-            <p className="hint">Drag a rectangle on the map to select an area.</p>
+            <p className="rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-700">{t('dragToSelect')}</p>
           )}
-          <h2 className="sidebar-title">
-            {trees.length} plant{trees.length === 1 ? '' : 's'}
-            {nearMe
-              ? ` within ${NEAR_ME_RADIUS_KM} km`
-              : searchText
-                ? ' matching'
-                : ' in view'}
-          </h2>
-          <ul className="tree-list">
-            {trees.map((tree) => (
-              <li
-                key={tree.id}
-                className={selectedTree?.id === tree.id ? 'selected' : ''}
-                onClick={() => selectFromList(tree)}
-              >
-                <span className="tree-list-emoji">{plantEmoji(tree)}</span>
-                <span>
-                  <strong>
-                    {tree.name}
-                    {tree.hazard && <span title="Poisonous / hazardous"> ☠️</span>}
-                    {tree.in_season && <span title="In season now"> 🟢</span>}
-                    {tree.flagged_gone && <span title="Reported gone"> ⚠️</span>}
-                  </strong>
-                  <br />
-                  <small>
-                    {tree.fruit_type}
-                    {formatSeason(tree) ? ` · ${formatSeason(tree)}` : ''}
-                    {typeof tree.distance_km === 'number' && (
-                      <span className="distance"> · {formatDistance(tree.distance_km)}</span>
-                    )}
-                  </small>
-                </span>
-              </li>
-            ))}
-            {trees.length === 0 && (
-              <li className="empty">Nothing here yet — register the first plant!</li>
-            )}
-          </ul>
+          <PlantList
+            trees={trees}
+            selectedTree={selectedTree}
+            onSelect={selectFromList}
+            countSuffix={countSuffix}
+          />
         </aside>
 
-        <main className="map-wrap">
+        {/* Map */}
+        <main className="relative min-w-0 flex-1">
           <MapView
             trees={trees}
             selectedTree={selectedTree}
@@ -375,37 +349,77 @@ export default function App() {
             )}
           </MapView>
 
-          {addMode && draftPosition && (
-            <div className="form-panel">
-              <TreeForm
-                position={draftPosition}
-                onSubmit={handleCreate}
-                onCancel={() => setDraftPosition(null)}
-              />
-            </div>
-          )}
-          {editingTree && (
-            <div className="form-panel">
-              <TreeForm
-                position={{ lat: editingTree.lat, lng: editingTree.lng }}
-                initial={editingTree}
-                onSubmit={handleUpdate}
-                onCancel={() => setEditingTree(null)}
-              />
-            </div>
-          )}
-          {exportArea && (
-            <div className="form-panel">
-              <ExportPanel
-                area={exportArea}
-                onClose={() => setExportArea(null)}
-                onNotice={showNotice}
-              />
-            </div>
-          )}
-          {notice && <div className="notice">{notice}</div>}
+          {/* Desktop map appearance control */}
+          <div className="absolute right-3 top-3 z-20 hidden md:block">
+            <MapSettingsControl />
+          </div>
+
+          <AnimatePresence>
+            {addMode && draftPosition && (
+              <FloatingPanel key="add-form">
+                <TreeForm
+                  position={draftPosition}
+                  onSubmit={handleCreate}
+                  onCancel={() => setDraftPosition(null)}
+                />
+              </FloatingPanel>
+            )}
+            {editingTree && (
+              <FloatingPanel key="edit-form">
+                <TreeForm
+                  position={{ lat: editingTree.lat, lng: editingTree.lng }}
+                  initial={editingTree}
+                  onSubmit={handleUpdate}
+                  onCancel={() => setEditingTree(null)}
+                />
+              </FloatingPanel>
+            )}
+            {exportArea && (
+              <FloatingPanel key="export-panel">
+                <ExportPanel area={exportArea} onClose={() => setExportArea(null)} onNotice={showNotice} />
+              </FloatingPanel>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {notice && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="pointer-events-none absolute bottom-24 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-forest-700 px-5 py-2.5 text-sm font-medium text-white shadow-card md:bottom-6"
+              >
+                {notice}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
+
+        {/* Mobile: bottom sheet with the list + floating dock */}
+        <BottomSheet>
+          <PlantList
+            trees={trees}
+            selectedTree={selectedTree}
+            onSelect={selectFromList}
+            countSuffix={countSuffix}
+          />
+        </BottomSheet>
       </div>
+
+      <MobileDock
+        user={user}
+        onLogin={() => setAuthModal('login')}
+        onLogout={logout}
+        addMode={addMode}
+        onToggleAdd={toggleAddMode}
+        nearMe={nearMe}
+        locating={locating}
+        onNearMe={handleNearMe}
+        isAdmin={!!user?.is_admin}
+        selectingArea={selectingArea}
+        onToggleExport={toggleSelectArea}
+        filterProps={filterProps}
+      />
 
       {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} />}
     </div>

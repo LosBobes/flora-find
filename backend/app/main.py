@@ -4,13 +4,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .database import Base, engine
+from .database import Base, SessionLocal, engine
 from .migrations import run_migrations
-from .routers import auth_routes, tree_routes
+from .plant_type_seed import backfill_plant_types
+from .routers import auth_routes, plant_type_routes, tree_routes
 from .storage import UPLOAD_DIR
 
 run_migrations(engine)
 Base.metadata.create_all(bind=engine)
+
+# Register a plant type for any fruit_type already in use (e.g. seeded data or a
+# database from before plant types existed) so the vocabulary is never empty.
+with SessionLocal() as _db:
+    backfill_plant_types(_db)
 
 app = FastAPI(
     title="FloraFind API",
@@ -32,6 +38,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_routes.router)
+app.include_router(plant_type_routes.router)
 app.include_router(tree_routes.router)
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")

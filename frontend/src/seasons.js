@@ -1,25 +1,23 @@
-export const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
+// Season helpers. Month names are passed in from i18n so they follow the
+// selected language (see useI18n().months / .monthsShort).
 
-export function monthName(month, short = false) {
-  const name = MONTHS[month - 1]
-  return short ? name.slice(0, 3) : name
+export function formatSeason(tree, monthsShort) {
+  if (!tree.season_start || !tree.season_end) return null
+  const start = monthsShort[tree.season_start - 1]
+  if (tree.season_start === tree.season_end) return start
+  return `${start}–${monthsShort[tree.season_end - 1]}`
 }
 
-export function formatSeason(tree) {
+// Set of month numbers (1-12) a plant is in season, handling the new-year
+// wrap (e.g. Nov->Feb). Returns null when no season is recorded.
+export function seasonMonths(tree) {
   if (!tree.season_start || !tree.season_end) return null
-  if (tree.season_start === tree.season_end) return monthName(tree.season_start, true)
-  return `${monthName(tree.season_start, true)}–${monthName(tree.season_end, true)}`
+  const months = new Set()
+  let month = tree.season_start
+  for (let i = 0; i < 12; i++) {
+    months.add(month)
+    if (month === tree.season_end) break
+    month = month === 12 ? 1 : month + 1
+  }
+  return months
 }

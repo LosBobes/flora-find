@@ -1,25 +1,52 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { Map, Marker, Popup, useMap } from '@vis.gl/react-maplibre'
+import { motion } from 'motion/react'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { plantEmoji } from '../fruitIcons'
+import { PlantIcon } from '../icons'
+import { useI18n } from '../i18n'
+import { usePlantTypes } from '../PlantTypesContext'
+import { buildBasemapStyle, useMapSettings } from '../MapSettingsContext'
+import { cn } from '../lib/utils'
 
 const DEFAULT_CENTER = { lat: 44.8125, lng: 20.4612 }
 const DEFAULT_ZOOM = 13
 
-// Raster OpenStreetMap style — no API key or tile provider account required.
-const OSM_STYLE = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution:
-        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+// When a plant is selected, make sure its popup card is fully on screen. The
+// popup opens above the marker, so a marker near the top or side edge would be
+// clipped. We measure the rendered popup and ease the map just enough to bring
+// the whole card into view (with padding), without recentring unnecessarily.
+function PanToSelected({ tree }) {
+  const { current: map } = useMap()
+  useEffect(() => {
+    if (!map || !tree) return
+    const m = map.getMap ? map.getMap() : map
+    const id = requestAnimationFrame(() => {
+      const container = m.getContainer()
+      const popup = container.querySelector('.maplibregl-popup-content')
+      const point = m.project([tree.lng, tree.lat])
+      const pad = 12
+      const markerOffset = 26
+      const popupH = popup ? popup.offsetHeight : 320
+      const popupW = popup ? popup.offsetWidth : 280
+      const halfW = popupW / 2
+
+      let tx = point.x
+      let ty = point.y
+      const neededTop = popupH + markerOffset + pad
+      if (ty < neededTop) ty = neededTop
+      if (ty > container.clientHeight - pad) ty = container.clientHeight - pad
+      const minX = halfW + pad
+      const maxX = container.clientWidth - halfW - pad
+      if (minX < maxX) tx = Math.min(Math.max(point.x, minX), maxX)
+
+      if (Math.abs(tx - point.x) < 1 && Math.abs(ty - point.y) < 1) return
+      const center = m.project(m.getCenter())
+      const newCenter = m.unproject([center.x - (tx - point.x), center.y - (ty - point.y)])
+      m.easeTo({ center: newCenter, duration: 320 })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [map, tree])
+  return null
 }
 
 function PanTo({ target }) {
@@ -147,56 +174,96 @@ export default function MapView({
   onAreaCancel,
   children,
 }) {
-  const reportBounds = useCallback(
-    (event) => {
-      const bounds = event.target.getBounds()
-      onBoundsChanged({
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest(),
-      })
-    },
-    [onBoundsChanged],
-  )
+  const { name: plantName } = useI18n()
+  const { localized: localizedType } = usePlantTypes()
+  const { theme, markerPx, showLabels, isDark } = useMapSettings()
+  const mapStyle = useMemo(() => buildBasemapStyle(theme), [theme])
+  const reportBounds = useCallback((event) => {
+    const bounds = event.target.getBounds()
+    onBoundsChanged({
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest(),
+    })
+  }, [onBoundsChanged])
+
+  // Keep the map locked to north-up: no rotation or pitch, ever.
+  const handleLoad = useCallback((event) => {
+    const map = event.target
+    map.dragRotate.disable()
+    map.touchZoomRotate.disableRotation()
+    map.keyboard.disableRotation()
+    reportBounds(event)
+  }, [reportBounds])
 
   return (
     <Map
-      mapStyle={OSM_STYLE}
+      mapStyle={mapStyle}
       initialViewState={{
         longitude: DEFAULT_CENTER.lng,
         latitude: DEFAULT_CENTER.lat,
         zoom: DEFAULT_ZOOM,
+        bearing: 0,
+        pitch: 0,
       }}
       style={{ width: '100%', height: '100%' }}
       cursor={addMode || selectingArea ? 'crosshair' : 'grab'}
+      dragRotate={false}
+      pitchWithRotate={false}
+      touchPitch={false}
       onClick={(event) => onMapClick({ lat: event.lngLat.lat, lng: event.lngLat.lng })}
-      onLoad={reportBounds}
+      onLoad={handleLoad}
       onMoveEnd={reportBounds}
     >
+      <PanToSelected tree={selectedTree} />
       <PanTo target={panTarget} />
       <BoxSelect active={selectingArea} onComplete={onAreaSelected} onCancel={onAreaCancel} />
 
-      {trees.map((tree) => (
-        <Marker
-          key={tree.id}
-          longitude={tree.lng}
-          latitude={tree.lat}
-          onClick={(event) => {
-            event.originalEvent.stopPropagation()
-            onSelectTree(tree)
-          }}
-        >
-          <div
-            className={`fruit-marker${selectedTree?.id === tree.id ? ' selected' : ''}${
-              tree.hazard ? ' hazard' : ''
-            }`}
-            title={`${tree.name} (${tree.fruit_type})${tree.hazard ? ' — hazardous!' : ''}`}
+      {trees.map((tree) => {
+        const selected = selectedTree?.id === tree.id
+        const px = Math.round(selected ? markerPx * 1.3 : markerPx)
+        return (
+          <Marker
+            key={tree.id}
+            longitude={tree.lng}
+            latitude={tree.lat}
+            style={{ zIndex: selected ? 4 : 1 }}
+            onClick={(event) => {
+              event.originalEvent.stopPropagation()
+              onSelectTree(tree)
+            }}
           >
-            {plantEmoji(tree)}
-          </div>
-        </Marker>
-      ))}
+            <motion.div
+              className="flex cursor-pointer flex-col items-center"
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+              whileHover={{ scale: 1.12 }}
+              title={`${plantName(tree.name)} (${localizedType(tree.fruit_type)})`}
+            >
+              <PlantIcon
+                tree={tree}
+                size={px}
+                className={cn(
+                  'block drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]',
+                  tree.hazard && 'rounded-full shadow-[0_0_0_3px_rgba(198,40,40,0.4)]',
+                )}
+              />
+              {showLabels && (
+                <span
+                  className={cn(
+                    'mt-1 max-w-[120px] truncate rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm',
+                    isDark ? 'bg-forest-900/85 text-white' : 'bg-white/90 text-forest-900',
+                  )}
+                >
+                  {plantName(tree.name)}
+                </span>
+              )}
+            </motion.div>
+          </Marker>
+        )
+      })}
 
       {userPosition && (
         <Marker longitude={userPosition.lng} latitude={userPosition.lat} style={{ zIndex: 2 }}>

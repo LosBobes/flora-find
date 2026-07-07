@@ -8,8 +8,8 @@ Run from the ``backend`` directory:
 It creates two accounts and a spread of real Belgrade parks/neighbourhoods
 (plus a few entries in Novi Sad, Niš and Subotica):
 
-    admin@florafind.rs / admin1234   — an ADMIN who can export map areas
-    seed@florafind.rs  / seed1234    — the contributor who "registered" the plants
+    admin@florafind.rs / admin1234   : an ADMIN who can export map areas
+    seed@florafind.rs  / seed1234    : the contributor who "registered" the plants
 
 The coordinates are hand-picked to fall inside well-known green spaces
 (Kalemegdan, Ada Ciganlija, Tašmajdan, Košutnjak, Zemun, Topčider…), so the
@@ -22,6 +22,7 @@ from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.migrations import run_migrations
 from app.models import Tree, User
+from app.plant_type_seed import backfill_plant_types
 
 ADMIN = {"email": "admin@florafind.rs", "username": "admin", "password": "admin1234"}
 CONTRIBUTOR = {"email": "seed@florafind.rs", "username": "belgrade_forager", "password": "seed1234"}
@@ -156,6 +157,9 @@ def main():
                 f"Database already has {existing} plant(s); skipping plant seed. "
                 "Re-run with --force to add the sample plants anyway."
             )
+            added_types = backfill_plant_types(db)
+            if added_types:
+                print(f"  registered {added_types} plant type(s) from existing plants")
             return
 
         for (category, name, fruit_type, lat, lng, species,
@@ -176,7 +180,9 @@ def main():
                 )
             )
         db.commit()
+        added_types = backfill_plant_types(db)
         print(f"Seeded {len(PLANTS)} plants around Belgrade & Serbia.")
+        print(f"Registered {added_types} plant type(s) in the vocabulary.")
         print(f"Admin login: {ADMIN['email']} / {ADMIN['password']}")
     finally:
         db.close()

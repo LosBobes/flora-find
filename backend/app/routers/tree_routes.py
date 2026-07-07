@@ -11,13 +11,25 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..auth import get_current_admin, get_current_user
 from ..database import get_db
-from ..models import Tree, TreeConfirmation, TreePhoto, User, utcnow
+from ..models import PlantType, Tree, TreeConfirmation, TreePhoto, User, utcnow
 from ..schemas import ConfirmationCreate, PhotoOut, PlantCategory, TreeCreate, TreeOut, TreeUpdate
 from ..storage import ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_TREE, UPLOAD_DIR
 
 router = APIRouter(prefix="/api/trees", tags=["trees"])
 
 EARTH_RADIUS_KM = 6371.0
+
+
+def ensure_known_plant_type(db: Session, fruit_type: str) -> None:
+    """Plants may only use a type from the managed vocabulary. Admins add new
+    types via /api/plant-types; everyone else picks from what exists."""
+    wanted = fruit_type.strip().lower()
+    exists = any(pt.canonical.strip().lower() == wanted for pt in db.query(PlantType).all())
+    if not exists:
+        raise HTTPException(
+            status_code=400,
+            detail="Unknown plant type. Pick one from the list, or ask an admin to add it.",
+        )
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -255,6 +267,7 @@ def create_tree(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    ensure_known_plant_type(db, payload.fruit_type)
     tree = Tree(**payload.model_dump(), owner_id=current_user.id)
     db.add(tree)
     db.commit()
@@ -274,6 +287,8 @@ def update_tree(
         raise HTTPException(status_code=404, detail="Tree not found")
     if tree.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only edit trees you registered")
+    if payload.fruit_type is not None:
+        ensure_known_plant_type(db, payload.fruit_type)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(tree, field, value)
     db.commit()

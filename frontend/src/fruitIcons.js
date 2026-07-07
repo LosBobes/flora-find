@@ -1,83 +1,15 @@
-const TYPE_EMOJI = {
-  // Fruits & nuts
-  apple: '🍎',
-  pear: '🍐',
-  cherry: '🍒',
-  'sour cherry': '🍒',
-  plum: '🟣',
-  peach: '🍑',
-  apricot: '🍑',
-  orange: '🍊',
-  mandarin: '🍊',
-  lemon: '🍋',
-  lime: '🍋',
-  fig: '🟤',
-  grape: '🍇',
-  mulberry: '🫐',
-  blueberry: '🫐',
-  blackberry: '🫐',
-  raspberry: '🍓',
-  strawberry: '🍓',
-  walnut: '🌰',
-  chestnut: '🌰',
-  hazelnut: '🌰',
-  almond: '🌰',
-  olive: '🫒',
-  banana: '🍌',
-  mango: '🥭',
-  avocado: '🥑',
-  pomegranate: '🔴',
-  quince: '🍈',
-  melon: '🍈',
-  kiwi: '🥝',
-  coconut: '🥥',
-  elderberry: '🌸',
-  'rose hip': '🌹',
-  // General trees
-  oak: '🌳',
-  maple: '🍁',
-  birch: '🌳',
-  linden: '🌳',
-  willow: '🌳',
-  beech: '🌳',
-  poplar: '🌳',
-  plane: '🌳',
-  pine: '🌲',
-  spruce: '🌲',
-  fir: '🌲',
-  cedar: '🌲',
-  cypress: '🌲',
-  palm: '🌴',
-  magnolia: '🌸',
-  // Shrubs & flowers
-  rose: '🌹',
-  roses: '🌹',
-  lilac: '💜',
-  lavender: '💜',
-  hydrangea: '💠',
-  tulip: '🌷',
-  tulips: '🌷',
-  sunflower: '🌻',
-  sunflowers: '🌻',
-  daffodil: '🌼',
-  daffodils: '🌼',
-  daisy: '🌼',
-  peony: '🌺',
-  peonies: '🌺',
-  hibiscus: '🌺',
-  wildflowers: '🌼',
-  // Vines
-  ivy: '🌿',
-  wisteria: '💜',
-}
+// Plant categories with a colour used for their map marker and list icon. Labels
+// are resolved at render time via i18n (see `labelKey`); no emoji anywhere, the
+// visual is a coloured SVG glyph (see icons.jsx).
+export const HAZARD_COLOR = '#c62828'
 
 export const PLANT_CATEGORIES = [
-  { value: 'fruit_tree', label: 'Fruit tree', emoji: '🍒' },
-  { value: 'tree', label: 'Tree', emoji: '🌳' },
-  { value: 'shrub', label: 'Shrub / bush', emoji: '🌿' },
-  { value: 'flowerbed', label: 'Flowerbed', emoji: '🌷' },
-  { value: 'vine', label: 'Vine / climber', emoji: '🌱' },
-  { value: 'other', label: 'Other plant', emoji: '🪴' },
+  { value: 'fruit_tree', labelKey: 'cat_fruit_tree', color: '#d1495b' },
+  { value: 'tree', labelKey: 'cat_tree', color: '#2e7d32' },
+  { value: 'shrub', labelKey: 'cat_shrub', color: '#6a994e' },
+  { value: 'flowerbed', labelKey: 'cat_flowerbed', color: '#9b5de5' },
+  { value: 'vine', labelKey: 'cat_vine', color: '#1b9e77' },
+  { value: 'other', labelKey: 'cat_other', color: '#6b7a6b' },
 ]
 
 export function categoryInfo(category) {
@@ -87,19 +19,61 @@ export function categoryInfo(category) {
   )
 }
 
-// Marker/list emoji for a plant: hazards always stand out, then the specific
-// type if we know it, then the category fallback.
-export function plantEmoji(tree) {
-  if (tree?.hazard) return '☠️'
-  const type = tree?.fruit_type?.trim().toLowerCase()
-  if (type && TYPE_EMOJI[type]) return TYPE_EMOJI[type]
-  return categoryInfo(tree?.category).emoji
+// Map a fruit name to one of a handful of icon shapes, so different fruits get
+// visibly different markers. Anything unknown falls back to the apple shape.
+const FRUIT_VARIANTS = {
+  apple: 'apple',
+  pear: 'pear',
+  quince: 'pear',
+  cherry: 'cherries',
+  'sour cherry': 'cherries',
+  grape: 'grapes',
+  mulberry: 'berry',
+  blackberry: 'berry',
+  elderberry: 'berry',
+  raspberry: 'berry',
+  strawberry: 'berry',
+  'rose hip': 'berry',
+  olive: 'berry',
+  walnut: 'nut',
+  hazelnut: 'nut',
+  chestnut: 'nut',
+  'horse chestnut': 'nut',
+  almond: 'nut',
+  peach: 'stonefruit',
+  plum: 'stonefruit',
+  apricot: 'stonefruit',
+  fig: 'fig',
+  orange: 'citrus',
+  lemon: 'citrus',
+  pomegranate: 'citrus',
 }
 
-// Emoji for a bare type label (filter dropdown), no category context.
-export function fruitEmoji(fruitType) {
-  if (!fruitType) return '🌳'
-  return TYPE_EMOJI[fruitType.trim().toLowerCase()] ?? '🌳'
+export function fruitVariant(fruitType) {
+  return FRUIT_VARIANTS[(fruitType || '').trim().toLowerCase()] ?? 'apple'
+}
+
+// A fun, distinct colour per fruit shape so the map reads at a glance.
+const FRUIT_COLORS = {
+  apple: '#e4572e',
+  pear: '#7cb518',
+  cherries: '#c1121f',
+  grapes: '#8e5ea2',
+  berry: '#b5179e',
+  nut: '#a1683a',
+  stonefruit: '#f4845f',
+  fig: '#7b4397',
+  citrus: '#f4a259',
+}
+
+// Marker/list colour for a plant: hazards always stand out; fruit trees take a
+// playful per-fruit colour; everything else uses its category colour.
+export function plantColor(tree) {
+  if (tree?.hazard) return HAZARD_COLOR
+  if (tree?.category === 'fruit_tree') {
+    return FRUIT_COLORS[fruitVariant(tree.fruit_type)] ?? categoryInfo('fruit_tree').color
+  }
+  return categoryInfo(tree?.category).color
 }
 
 export const COMMON_FRUITS = [

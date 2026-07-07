@@ -40,6 +40,16 @@ def run_migrations(engine: Engine) -> None:
                     text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
                 )
 
+    # Attribution + source columns for photos pulled from external libraries
+    # (Wikimedia Commons); user-uploaded photos leave them null.
+    if "tree_photos" in tables:
+        photo_columns = {column["name"] for column in inspector.get_columns("tree_photos")}
+        with engine.begin() as conn:
+            if "attribution" not in photo_columns:
+                conn.execute(text("ALTER TABLE tree_photos ADD COLUMN attribution VARCHAR(500)"))
+            if "source_url" not in photo_columns:
+                conn.execute(text("ALTER TABLE tree_photos ADD COLUMN source_url VARCHAR(500)"))
+
     if "trees" not in tables:
         return
     columns = {column["name"] for column in inspector.get_columns("trees")}
