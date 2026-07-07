@@ -110,7 +110,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
         aria-hidden
         className="beam-border pointer-events-none absolute inset-0 z-20 rounded-2xl"
         style={{
-          background: `conic-gradient(from var(--beam-angle), ${accent}00 0deg, ${accent}00 250deg, ${accent} 318deg, #ffffff 340deg, ${accent} 356deg, ${accent}00 360deg)`,
+          background: `conic-gradient(from var(--beam-angle), ${accent}00 0deg, ${accent}00 300deg, ${accent}99 338deg, #ffffff 356deg, ${accent}00 360deg)`,
         }}
       />
       <div className="p-4 pb-3">
