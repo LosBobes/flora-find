@@ -4,7 +4,6 @@ import { PlantIcon, HazardBadge, GoneBadge } from '../icons'
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { formatSeason, seasonMonths } from '../seasons'
-import { BorderBeam } from '../ui/border-beam'
 import { cn } from '../lib/utils'
 
 function useDaysAgo() {
@@ -107,12 +106,12 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
         transition={{ duration: 0.9, times: [0, 0.3, 1], ease: 'easeOut' }}
         style={{ boxShadow: `inset 0 0 0 1.5px ${accent}, 0 0 24px 2px ${accent}66` }}
       />
-      <BorderBeam
-        size={45}
-        duration={5}
-        colorFrom={accent}
-        colorTo={accent}
-        className="z-20 blur-[1px]"
+      <span
+        aria-hidden
+        className="beam-border pointer-events-none absolute inset-0 z-20 rounded-2xl"
+        style={{
+          background: `conic-gradient(from var(--beam-angle), ${accent}00 0deg, ${accent}00 250deg, ${accent} 318deg, #ffffff 340deg, ${accent} 356deg, ${accent}00 360deg)`,
+        }}
       />
       <div className="p-4 pb-3">
         <h3 className="mb-1.5 flex items-start gap-2 pr-5 text-base font-bold leading-snug text-forest-900 dark:text-forest-50">
