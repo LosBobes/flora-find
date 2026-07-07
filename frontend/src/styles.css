@@ -108,7 +108,7 @@
 }
 
 .beam-border {
-  padding: 1.5px;
+  padding: 3px;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
