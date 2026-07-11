@@ -6,16 +6,19 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import Base, SessionLocal, engine
 from .migrations import run_migrations
-from .plant_type_seed import backfill_plant_types
+from .plant_type_seed import backfill_plant_types, seed_builtin_plant_types
 from .routers import auth_routes, plant_type_routes, tree_routes
 from .storage import UPLOAD_DIR
 
 run_migrations(engine)
 Base.metadata.create_all(bind=engine)
 
-# Register a plant type for any fruit_type already in use (e.g. seeded data or a
-# database from before plant types existed) so the vocabulary is never empty.
+# Ensure every category offers its built-in vocabulary (even on a fresh database
+# with no plants yet), then register a plant type for any fruit_type already in
+# use (e.g. seeded data or a database from before plant types existed) so the
+# vocabulary is never empty.
 with SessionLocal() as _db:
+    seed_builtin_plant_types(_db)
     backfill_plant_types(_db)
 
 app = FastAPI(

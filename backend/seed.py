@@ -22,7 +22,7 @@ from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.migrations import run_migrations
 from app.models import Tree, User
-from app.plant_type_seed import backfill_plant_types
+from app.plant_type_seed import backfill_plant_types, seed_builtin_plant_types
 
 ADMIN = {"email": "admin@florafind.rs", "username": "admin", "password": "admin1234"}
 CONTRIBUTOR = {"email": "seed@florafind.rs", "username": "belgrade_forager", "password": "seed1234"}
@@ -150,6 +150,10 @@ def main():
         get_or_create_user(db, **ADMIN, is_admin=True)
         contributor = get_or_create_user(db, **CONTRIBUTOR)
         db.commit()
+
+        seeded_types = seed_builtin_plant_types(db)
+        if seeded_types:
+            print(f"Seeded {seeded_types} built-in plant type(s) into the vocabulary.")
 
         existing = db.query(Tree).count()
         if existing and not force:
