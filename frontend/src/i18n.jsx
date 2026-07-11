@@ -95,6 +95,8 @@ const STRINGS = {
 
     // Form
     editPlant: 'Edit plant',
+    formPreview: 'Live preview',
+    formTapHint: 'Pick a category, then fill in the details 🌱',
     category: 'Category',
     name: 'Name',
     namePlaceholder_fruit_tree: 'e.g. Old cherry by the school',
@@ -249,6 +251,8 @@ const STRINGS = {
 
     // Form
     editPlant: 'Izmeni biljku',
+    formPreview: 'Pregled uživo',
+    formTapHint: 'Izaberi kategoriju, pa popuni detalje 🌱',
     category: 'Kategorija',
     name: 'Naziv',
     namePlaceholder_fruit_tree: 'npr. Stara trešnja kod škole',
