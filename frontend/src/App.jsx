@@ -27,9 +27,12 @@ function FloatingPanel({ children }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 12, scale: 0.98 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="beam-border absolute inset-x-3 bottom-24 z-40 max-h-[68vh] overflow-y-auto rounded-2xl border border-forest-100 bg-white p-5 shadow-card dark:border-white/10 dark:bg-[#12241a] md:inset-x-auto md:bottom-auto md:right-3 md:top-3 md:w-[360px]"
+      className="beam-border absolute inset-x-3 bottom-24 z-40 flex max-h-[68vh] flex-col overflow-hidden rounded-2xl border border-forest-100 bg-white shadow-card dark:border-white/10 dark:bg-[#12241a] md:inset-x-auto md:bottom-auto md:right-3 md:top-3 md:w-[360px]"
     >
-      {children}
+      {/* Scroll on an inner wrapper, not on the beam-border element itself: the
+          beam's absolutely-positioned ::before would otherwise scroll with the
+          content and leave a stray border edge stranded mid-card. */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
     </motion.div>
   )
 }
