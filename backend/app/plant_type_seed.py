@@ -90,6 +90,54 @@ def names_for(english: str) -> dict:
     return {"en": english, "sr": NAMES_SR.get(english.strip().lower(), english)}
 
 
+# The built-in vocabulary offered in every category, even before any plant of
+# that category exists. Mirror of the frontend suggestion list
+# (``frontend/src/fruitIcons.js`` ``TYPE_SUGGESTIONS``); keep the two in sync.
+BUILTIN_TYPES = {
+    "fruit_tree": [
+        "Apple", "Pear", "Cherry", "Sour cherry", "Plum", "Peach", "Apricot",
+        "Fig", "Grape", "Mulberry", "Walnut", "Chestnut", "Hazelnut", "Quince",
+        "Pomegranate", "Orange", "Lemon", "Olive", "Elderberry", "Rose hip",
+    ],
+    "tree": [
+        "Oak", "Maple", "Birch", "Linden", "Willow", "Plane", "Pine", "Spruce",
+        "Poplar", "Beech", "Magnolia",
+    ],
+    "shrub": [
+        "Lilac", "Rose", "Boxwood", "Hydrangea", "Juniper", "Forsythia",
+        "Hawthorn", "Blackberry",
+    ],
+    "flowerbed": [
+        "Tulips", "Roses", "Lavender", "Sunflowers", "Daffodils", "Peonies",
+        "Wildflowers",
+    ],
+    "vine": ["Ivy", "Wisteria", "Grape", "Climbing rose", "Virginia creeper"],
+    "other": [],
+}
+
+
+def seed_builtin_plant_types(db: Session) -> int:
+    """Register the built-in vocabulary so each category has types to pick from
+    on a fresh database. Idempotent: only inserts missing (category, name) pairs;
+    safe to call on every startup."""
+    known = {
+        (pt.category, (pt.canonical or "").strip().lower())
+        for pt in db.query(PlantType).all()
+    }
+    added = 0
+    for category, names in BUILTIN_TYPES.items():
+        for english in names:
+            key = (category, english.strip().lower())
+            if key in known:
+                continue
+            db.add(PlantType(category=category, names=names_for(english)))
+            known.add(key)
+            added += 1
+    if added:
+        db.commit()
+    return added
+
+
 def backfill_plant_types(db: Session) -> int:
     """Create a PlantType for every fruit_type used by a tree that isn't
     registered yet. Safe to call on every startup; only fills gaps."""
