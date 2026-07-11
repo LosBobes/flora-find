@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import { PLANT_CATEGORIES } from '../fruitIcons'
+import { PlantIcon } from '../icons'
 import { LANGUAGES, useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { ShimmerButton } from '../ui/shimmer-button'
@@ -10,6 +11,17 @@ import { cn } from '../lib/utils'
 
 const MAX_PHOTOS = 3
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp'
+
+// A friendly emoji per category, used only in the picker tiles (the canonical
+// marker artwork stays the coloured SVG glyph from icons.jsx / fruitIcons.js).
+const CATEGORY_EMOJI = {
+  fruit_tree: '🍎',
+  tree: '🌳',
+  shrub: '🌿',
+  flowerbed: '🌸',
+  vine: '🍇',
+  other: '🌱',
+}
 
 const emptyNames = () => Object.fromEntries(LANGUAGES.map((entry) => [entry.code, '']))
 
@@ -41,6 +53,10 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
   const isFruit = category === 'fruit_tree'
   const isFlowerbed = category === 'flowerbed'
   const typeOptions = byCategory(category)
+
+  // Mirrors the shape the map marker / list icon expect, so the preview shows
+  // exactly the artwork this plant will get once saved.
+  const previewTree = { category, fruit_type: fruitType, hazard }
 
   const categoryOptions = PLANT_CATEGORIES.map((entry) => ({
     value: entry.value,
@@ -124,17 +140,65 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
         <h3 className="text-lg font-bold text-forest-800 dark:text-forest-50">
           {initial ? t('editPlant') : t('registerPlant')}
         </h3>
-        <p className="text-xs text-forest-500 dark:text-forest-300">
-          {position.lat.toFixed(5)}, {position.lng.toFixed(5)}
-        </p>
+        <p className="text-xs text-forest-500 dark:text-forest-300">{t('formTapHint')}</p>
       </div>
 
-      <label className={labelText}>
-        {t('category')}
-        <span className="mt-1 block">
-          <Select value={category} onChange={handleCategoryChange} options={categoryOptions} />
+      {/* Live preview: the real marker artwork updates as you pick a category,
+          type or the hazard flag, so you see exactly how the plant will land on
+          the map before saving. */}
+      <div className="relative overflow-hidden rounded-2xl border border-forest-100 bg-gradient-to-br from-forest-50 via-white to-forest-50 p-3 dark:border-white/10 dark:from-forest-500/15 dark:via-transparent dark:to-forest-500/10">
+        <span className="pointer-events-none absolute -right-3 -top-3 select-none text-5xl opacity-15">
+          {CATEGORY_EMOJI[category]}
         </span>
-      </label>
+        <div className="relative flex items-center gap-3">
+          <span
+            key={`${category}-${fruitType}-${hazard}`}
+            className="grid size-14 shrink-0 animate-pop-in place-items-center rounded-2xl bg-white shadow-sm dark:bg-white/10"
+          >
+            <PlantIcon tree={previewTree} size={40} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-forest-500 dark:text-forest-300">
+              {t('formPreview')}
+            </p>
+            <p className="truncate text-sm font-bold text-forest-800 dark:text-forest-50">
+              {name.trim() || t(`namePlaceholder_${category}`)}
+            </p>
+            <p className="truncate text-xs text-forest-500 dark:text-forest-300">
+              {CATEGORY_EMOJI[category]} {t(`cat_${category}`)}
+              {fruitType ? ` · ${fruitType}` : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span className={labelText}>{t('category')}</span>
+        <div className="mt-1.5 grid grid-cols-3 gap-2">
+          {categoryOptions.map((entry) => {
+            const active = category === entry.value
+            return (
+              <button
+                key={entry.value}
+                type="button"
+                onClick={() => handleCategoryChange(entry.value)}
+                aria-pressed={active}
+                className={cn(
+                  'flex flex-col items-center gap-1 rounded-2xl border px-2 py-2.5 text-center transition active:scale-95',
+                  active
+                    ? 'border-forest-500 bg-forest-50 ring-2 ring-forest-300 dark:border-forest-400 dark:bg-forest-500/20 dark:ring-forest-500/40'
+                    : 'border-forest-100 bg-white hover:-translate-y-0.5 hover:border-forest-300 hover:bg-forest-50/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10',
+                )}
+              >
+                <span className="text-2xl leading-none">{CATEGORY_EMOJI[entry.value]}</span>
+                <span className="text-[11px] font-semibold leading-tight text-forest-800 dark:text-forest-100">
+                  {entry.label}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
       <label className={labelText}>
         {t('name')}

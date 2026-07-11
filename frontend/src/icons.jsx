@@ -243,18 +243,28 @@ export function GoneBadge({ size = 18, className, title }) {
   )
 }
 
-// Small leaf mark for the app's wordmark.
+// Leaf mark for the app's wordmark and favicon. A solid WHITE leaf with green
+// veins so it reads with strong contrast on the green brand tile in every map
+// theme (light, dark, and the warm "Stardew" wood skin where a pale leaf
+// previously washed out). Kept detailed enough — midrib plus three side veins —
+// to still look like a leaf at ~22px.
 export function BrandMark({ size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M20 4 C 10 4, 4 10, 4 20 C 14 20, 20 14, 20 4 Z" fill="#a5d6a7" />
       <path
-        d="M7 17 C 10 12, 14 8, 18 6"
-        stroke="#1b5e20"
-        strokeWidth="1.6"
+        d="M20 4 C 8.8 4 3.8 9.6 3.8 19.4 C 3.8 20 4.3 20.4 4.9 20.1 C 13.4 15.9 18.8 11 20.2 4.6 C 20.3 4.2 20 4 20 4 Z"
+        fill="#ffffff"
+      />
+      <path
+        d="M6.4 18.6 C 10 12.4 14.8 7.9 19 5.1"
+        stroke="#2e7d32"
+        strokeWidth="1.5"
         fill="none"
         strokeLinecap="round"
       />
+      <path d="M8.3 16.9 C 9.1 15.6 9.4 14.5 9.5 13.1" stroke="#2e7d32" strokeWidth="1.1" fill="none" strokeLinecap="round" />
+      <path d="M10.6 14.6 C 11.6 13.2 12.1 11.9 12.3 10.2" stroke="#2e7d32" strokeWidth="1.1" fill="none" strokeLinecap="round" />
+      <path d="M13 12.2 C 14.1 11 14.8 9.9 15.3 8.6" stroke="#2e7d32" strokeWidth="1.1" fill="none" strokeLinecap="round" />
     </svg>
   )
 }

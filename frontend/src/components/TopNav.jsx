@@ -59,7 +59,7 @@ export default function TopNav({ filterProps, onLogin, onRegister }) {
       <Particles className="absolute inset-0 h-full w-full opacity-60" quantity={40} color="#43a047" />
       <div className="relative flex items-center gap-3 px-3 py-2.5 md:px-5">
         <div className="flex shrink-0 items-center gap-2">
-          <span className="grid size-9 place-items-center rounded-xl bg-forest-600 shadow-glow">
+          <span className="grid size-9 place-items-center rounded-xl bg-forest-600 shadow-glow ring-1 ring-inset ring-white/25">
             <BrandMark size={22} />
           </span>
           <Wordmark />
