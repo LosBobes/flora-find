@@ -92,22 +92,13 @@
 }
 
 /* Rotating conic-gradient border ("beam") for the plant detail card. A bright
-   arc sweeps around the rounded edge. The element itself never rotates (only the
-   gradient angle animates), so the rounded corners stay put; a mask reveals just
-   the padding ring so only the border shows. */
-@property --beam-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-
-@keyframes beam-spin {
-  to {
-    --beam-angle: 360deg;
-  }
-}
-
-.beam-border {
+   arc sweeps around the rounded edge. The overlay element itself never rotates
+   (only the gradient angle animates), so the rounded corners stay put; a mask
+   reveals just the padding ring so only the border shows. This is a dedicated
+   overlay div (see TreeDetails) whose own background is the conic gradient —
+   distinct from `.beam-border`, which draws the ring on a `::before` so it can
+   wrap a card that has real content. */
+.beam-ring {
   padding: 3px;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,

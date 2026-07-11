@@ -108,7 +108,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
       />
       <span
         aria-hidden
-        className="beam-border pointer-events-none absolute inset-0 z-20 rounded-2xl"
+        className="beam-ring pointer-events-none absolute inset-0 z-20 rounded-2xl"
         style={{
           background: `conic-gradient(from var(--beam-angle), ${accent}00 0deg, ${accent}00 300deg, ${accent}99 338deg, #ffffff 356deg, ${accent}00 360deg)`,
         }}
