@@ -3,10 +3,21 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 const STORAGE_KEY = 'florafind_map_settings'
 
 // Keyless CARTO raster basemaps. `saturation: -1` fully desaturates a tileset.
+// `stardew` warms and saturates the pastel Voyager tiles into a cozy farm-game
+// look and, like `dark`, re-skins the whole UI (see the class toggle below).
 export const MAP_THEMES = [
   { id: 'mono', labelKey: 'themeMono', swatch: '#c9d2c9', tiles: 'light_all', saturation: -1 },
   { id: 'light', labelKey: 'themeLight', swatch: '#eae6dc', tiles: 'light_all', saturation: 0 },
   { id: 'voyager', labelKey: 'themeVoyager', swatch: '#d7e7c9', tiles: 'rastertiles/voyager', saturation: 0 },
+  {
+    id: 'stardew',
+    labelKey: 'themeStardew',
+    swatch: '#a7d86e',
+    tiles: 'rastertiles/voyager',
+    saturation: 0.4,
+    hueRotate: 8,
+    contrast: 0.12,
+  },
   { id: 'dark', labelKey: 'themeDark', swatch: '#2b2f33', tiles: 'dark_all', saturation: 0 },
 ]
 
@@ -40,9 +51,13 @@ export function MapSettingsProvider({ children }) {
   }, [settings])
 
   // The chosen theme re-skins the whole UI, not just the map: the Dark theme
-  // flips the app into dark mode via Tailwind's `dark` class on <html>.
+  // flips the app into dark mode via Tailwind's `dark` class on <html>, and the
+  // Stardew theme adds a `theme-stardew` class that styles.css hangs a cozy,
+  // pixel-art parchment skin off of.
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', settings.theme === 'dark')
+    const root = document.documentElement
+    root.classList.toggle('dark', settings.theme === 'dark')
+    root.classList.toggle('theme-stardew', settings.theme === 'stardew')
   }, [settings.theme])
 
   const setTheme = useCallback((theme) => setSettings((s) => ({ ...s, theme })), [])
@@ -92,7 +107,11 @@ export function buildBasemapStyle(themeId) {
         id: 'basemap',
         type: 'raster',
         source: 'basemap',
-        paint: { 'raster-saturation': theme.saturation },
+        paint: {
+          'raster-saturation': theme.saturation,
+          ...(theme.hueRotate ? { 'raster-hue-rotate': theme.hueRotate } : {}),
+          ...(theme.contrast ? { 'raster-contrast': theme.contrast } : {}),
+        },
       },
     ],
   }

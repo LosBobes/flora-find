@@ -81,7 +81,11 @@ export default function TopNav({ filterProps, onLogin, onRegister }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <LangSwitch />
+          {/* Language toggle: desktop only. On mobile it lives in the settings
+              drawer so the search box gets the full width. */}
+          <div className="hidden md:block">
+            <LangSwitch />
+          </div>
           {/* Account controls: desktop only; mobile uses the dock. */}
           <div className="hidden items-center gap-2 md:flex">
             {user ? (
