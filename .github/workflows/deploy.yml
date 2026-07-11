@@ -1,0 +1,58 @@
+name: Deploy to Hetzner
+
+# Builds the FloraFind stack on the server from source, exactly like gamgee and
+# iris on the same box. The Hetzner host builds locally with docker compose, so
+# no registry pull is involved.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host:     ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key:      ${{ secrets.HETZNER_SSH_KEY }}
+          port:     ${{ secrets.HETZNER_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            echo "Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "Building images..."
+            # Secrets (FLORA_JWT_SECRET, POSTGRES_PASSWORD, etc.) live in the
+            # box's .env file next to docker-compose.prod.yml; compose reads
+            # them automatically. Build first, while the current containers keep
+            # serving, so downtime is only the brief recreate window below.
+            docker compose -f docker-compose.prod.yml build
+
+            echo "Recreating containers..."
+            # Tear the stack down before bringing it back up. A plain
+            # `up --build --remove-orphans` recreates in place, and an
+            # interrupted recreate can leave a temporarily-renamed container
+            # behind, which then conflicts on every subsequent deploy
+            # ("container name is already in use"). `down` removes the project's
+            # containers for a clean slate. The named volumes flora_pgdata and
+            # flora_uploads are NOT touched by `down` (only `down -v` would), so
+            # the database and uploaded photos survive.
+            docker compose -f docker-compose.prod.yml down --remove-orphans
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            echo "Pruning old images..."
+            docker image prune -f
+
+            echo "Running containers:"
+            docker compose -f docker-compose.prod.yml ps

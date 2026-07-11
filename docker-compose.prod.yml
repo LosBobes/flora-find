@@ -1,0 +1,64 @@
+# Production compose for the FloraFind stack on the shared Hetzner host.
+#
+# This mirrors how gamgee and iris are deployed on the same box: a host-level
+# Caddy terminates TLS (Let's Encrypt) and reverse-proxies each domain to a
+# loopback-only port. gamgee owns localhost:3000, iris owns localhost:3001, and
+# FloraFind owns localhost:3002, so the three stacks never collide.
+#
+# FloraFind is a single application container: the FastAPI backend serves the
+# API, the uploaded photos under /uploads, and the built frontend, all from one
+# origin on port 8000 (see the repo Dockerfile). Only that container is
+# published, and only on 127.0.0.1, so nothing here is reachable from the
+# internet except through Caddy. Postgres stays on FloraFind's private compose
+# network (its port is bound to loopback purely for an optional SSH tunnel).
+#
+# Build context is the repository root, and the image is built ON THE SERVER
+# from source (docker compose ... up --build), the same as gamgee and iris.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-flora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB:       ${POSTGRES_DB:-flora}
+    volumes:
+      - flora_pgdata:/var/lib/postgresql/data
+    ports:
+      # Loopback only: reachable via SSH tunnel (make db-tunnel), not the
+      # internet. Caddy never touches this.
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-flora} -d ${POSTGRES_DB:-flora}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLORA_DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-flora}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-flora}
+      # REQUIRED in production: the app refuses to start without it.
+      # Generate with: openssl rand -hex 32
+      FLORA_JWT_SECRET:   ${FLORA_JWT_SECRET:?set FLORA_JWT_SECRET in .env}
+      # Same-origin deploy (browser -> Caddy -> FastAPI), so the frontend and
+      # API share flora-find.com. Kept here so CORS allows that origin.
+      FLORA_CORS_ORIGINS: ${FLORA_CORS_ORIGINS:-https://flora-find.com}
+    volumes:
+      # Uploaded photos persist here across every rebuild/recreate. Only
+      # `docker compose down -v` would delete this volume.
+      - flora_uploads:/data/uploads
+    ports:
+      # Loopback only: reachable from Caddy on the same host, not the internet.
+      # gamgee uses 3000, iris uses 3001, FloraFind uses 3002.
+      - "127.0.0.1:3002:8000"
+
+volumes:
+  flora_pgdata:
+  flora_uploads:
