@@ -33,9 +33,10 @@ class User(Base):
 GONE_FLAG_THRESHOLD = 3
 
 # What kind of planting an entry is. "fruit_tree" keeps the original FloraFind
-# behaviour; the rest let the map hold ornamental trees, shrubs, flowerbeds,
-# vines and anything else growing in the neighbourhood.
-PLANT_CATEGORIES = ("fruit_tree", "tree", "shrub", "flowerbed", "vine", "other")
+# behaviour; the rest let the map hold ornamental (deciduous) trees, evergreen
+# trees/conifers, shrubs, flowerbeds, vines and anything else growing in the
+# neighbourhood.
+PLANT_CATEGORIES = ("fruit_tree", "tree", "evergreen", "shrub", "flowerbed", "vine", "other")
 
 
 def month_in_season(month: int, start: int | None, end: int | None) -> bool:

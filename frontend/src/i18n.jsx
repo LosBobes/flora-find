@@ -225,6 +225,7 @@ const STRINGS = {
     // Category labels
     cat_fruit_tree: 'Fruit tree',
     cat_tree: 'Tree',
+    cat_evergreen: 'Evergreen / conifer',
     cat_shrub: 'Shrub / bush',
     cat_flowerbed: 'Flowerbed',
     cat_vine: 'Vine / climber',
@@ -459,6 +460,7 @@ const STRINGS = {
     // Category labels
     cat_fruit_tree: 'Voćka',
     cat_tree: 'Drvo',
+    cat_evergreen: 'Zimzeleno / četinar',
     cat_shrub: 'Žbun / grm',
     cat_flowerbed: 'Cvetna leja',
     cat_vine: 'Puzavica',

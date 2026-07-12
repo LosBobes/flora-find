@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 FloraFind is a community map of neighborhood plants (fruit trees, ornamental trees,
-shrubs, flowerbeds, vines) built on MapLibre GL + OpenStreetMap — **no map API key
+evergreens, shrubs, flowerbeds, vines) built on MapLibre GL + OpenStreetMap — **no map API key
 required**. FastAPI/SQLAlchemy backend, React/Vite frontend, JWT email-password auth.
 
 ## Commands
