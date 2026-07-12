@@ -133,6 +133,17 @@ const STRINGS = {
     save: 'Save',
     cancel: 'Cancel',
 
+    // Photo identification
+    identifyPrompt: 'Not sure what it is? Identify from a photo',
+    identifyTitle: 'Identify from a photo',
+    identifyHint: 'Take or pick a clear photo of the leaf, flower or fruit.',
+    identifyPick: 'Choose a photo',
+    identifyRetry: 'Try another photo',
+    identifyBusy: 'Identifying…',
+    identifyNoMatch: 'No confident match. Try a clearer photo, or fill it in yourself.',
+    identifyConfidence: ({ pct }) => `${pct}% confidence`,
+    identifyUse: 'Use',
+
     // Auth
     logInTitle: 'Log in',
     createAccount: 'Create an account',
@@ -372,6 +383,17 @@ const STRINGS = {
     saving: 'Čuvanje…',
     save: 'Sačuvaj',
     cancel: 'Otkaži',
+
+    // Photo identification
+    identifyPrompt: 'Ne znaš šta je? Prepoznaj sa fotografije',
+    identifyTitle: 'Prepoznaj sa fotografije',
+    identifyHint: 'Uslikaj ili izaberi jasnu fotografiju lista, cveta ili ploda.',
+    identifyPick: 'Izaberi fotografiju',
+    identifyRetry: 'Probaj drugu fotografiju',
+    identifyBusy: 'Prepoznavanje…',
+    identifyNoMatch: 'Nema pouzdanog poklapanja. Probaj jasniju fotografiju ili popuni ručno.',
+    identifyConfidence: ({ pct }) => `${pct}% pouzdanost`,
+    identifyUse: 'Koristi',
 
     // Auth
     logInTitle: 'Prijava',

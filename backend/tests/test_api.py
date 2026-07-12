@@ -999,3 +999,70 @@ def test_delete_area_enforces_owner():
 
     assert client.delete(f"/api/areas/{area['id']}", headers=auth_headers(token)).status_code == 204
     assert client.get("/api/areas").json() == []
+
+
+# --- photo identification -----------------------------------------------------
+
+def test_identify_config_reports_disabled_by_default():
+    resp = client.get("/api/identify/config")
+    assert resp.status_code == 200
+    assert resp.json() == {"enabled": False}
+
+
+def test_identify_requires_auth():
+    resp = client.post(
+        "/api/identify", files={"image": ("p.jpg", b"bytes", "image/jpeg")}
+    )
+    assert resp.status_code == 401
+
+
+def test_identify_disabled_returns_503():
+    token = register()["access_token"]
+    resp = client.post(
+        "/api/identify",
+        files={"image": ("p.jpg", b"bytes", "image/jpeg")},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 503
+
+
+def test_identify_returns_mapped_suggestions(monkeypatch):
+    from app import identify as identify_service
+
+    token = register()["access_token"]
+    ensure_plant_type("fruit_tree", "Fig")
+
+    monkeypatch.setattr(identify_service, "enabled", lambda: True)
+    monkeypatch.setattr(
+        identify_service,
+        "identify",
+        lambda data, content_type, filename, **kw: [
+            identify_service.Candidate(0.87, "Ficus carica", "Common fig", "Ficus")
+        ],
+    )
+
+    resp = client.post(
+        "/api/identify",
+        files={"image": ("fig.jpg", b"\xff\xd8jpeg", "image/jpeg")},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 200, resp.text
+    suggestion = resp.json()["suggestions"][0]
+    assert suggestion["scientific_name"] == "Ficus carica"
+    assert suggestion["common_name"] == "Common fig"
+    assert suggestion["category"] == "fruit_tree"
+    assert suggestion["fruit_type"] == "Fig"
+    assert suggestion["known_type"] is True
+
+
+def test_identify_rejects_unsupported_type(monkeypatch):
+    from app import identify as identify_service
+
+    token = register()["access_token"]
+    monkeypatch.setattr(identify_service, "enabled", lambda: True)
+    resp = client.post(
+        "/api/identify",
+        files={"image": ("p.gif", b"bytes", "image/gif")},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 415

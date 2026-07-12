@@ -6,6 +6,7 @@ import { LANGUAGES, useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { ShimmerButton } from '../ui/shimmer-button'
 import { Select } from '../ui/select'
+import PlantIdentifier from './PlantIdentifier'
 import { fieldInput, labelText, btnGhost, btnPrimary, btnSmall } from '../ui/form'
 import { cn } from '../lib/utils'
 
@@ -85,6 +86,27 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
   function handlePhotosChange(event) {
     const files = Array.from(event.target.files).slice(0, MAX_PHOTOS)
     setPhotos(files)
+  }
+
+  // Apply a photo-identification match: fill in whatever the recogniser is
+  // confident about (species always; category / type / season / hazard only when
+  // the species maps to a type we carry) and attach the photo that was
+  // identified so the user doesn't have to pick it again.
+  function handleIdentified(suggestion, file) {
+    if (suggestion.category) setCategory(suggestion.category)
+    if (suggestion.known_type && suggestion.fruit_type) setFruitType(suggestion.fruit_type)
+    if (suggestion.scientific_name) setSpecies(suggestion.scientific_name)
+    if (suggestion.season_start != null) setSeasonStart(suggestion.season_start)
+    if (suggestion.season_end != null) setSeasonEnd(suggestion.season_end)
+    setHazard(Boolean(suggestion.hazard))
+    if (!name.trim() && suggestion.common_name) setName(suggestion.common_name)
+    if (file) {
+      setPhotos((current) =>
+        current.some((f) => f.name === file.name && f.size === file.size)
+          ? current
+          : [...current, file].slice(0, MAX_PHOTOS),
+      )
+    }
   }
 
   async function handleAddType(event) {
@@ -212,6 +234,11 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
           {t('ephemeralHint')}
         </p>
       )}
+
+      {/* Don't know what it is? Let a photo do the identifying and pre-fill the
+          form. Only on new plants (not areas, not edits) since it also attaches
+          the identified photo. */}
+      {!initial && !isArea && <PlantIdentifier onApply={handleIdentified} />}
 
       <label className={labelText}>
         {t('name')}

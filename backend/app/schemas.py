@@ -204,6 +204,32 @@ class AreaOut(AreaBase):
     in_season: bool = False
 
 
+class IdentifyConfig(BaseModel):
+    """Tells the frontend whether the photo-identification affordance should show."""
+
+    enabled: bool
+
+
+class IdentifySuggestion(BaseModel):
+    """One candidate returned by photo identification, pre-mapped to FloraFind
+    fields where the species is in our vocabulary so the form can auto-fill."""
+
+    scientific_name: str
+    common_name: str | None = None
+    score: float
+    category: PlantCategory | None = None
+    fruit_type: str | None = None
+    season_start: int | None = None
+    season_end: int | None = None
+    hazard: bool = False
+    # Whether ``fruit_type`` is a known type the create endpoint will accept.
+    known_type: bool = False
+
+
+class IdentifyResponse(BaseModel):
+    suggestions: list[IdentifySuggestion] = []
+
+
 class ConfirmationCreate(BaseModel):
     status: Literal["present", "gone"]
 

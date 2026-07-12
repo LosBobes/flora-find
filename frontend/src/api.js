@@ -108,6 +108,16 @@ export const api = {
       auth: true,
     }),
 
+  // Photo identification. `identifyConfig` says whether the feature is enabled
+  // on this server (so the UI can hide it); `identifyPlant` posts a single photo
+  // and returns ranked, form-ready suggestions.
+  identifyConfig: () => request('/api/identify/config'),
+  identifyPlant: (file) => {
+    const form = new FormData()
+    form.append('image', file)
+    return request('/api/identify', { method: 'POST', body: form, auth: true })
+  },
+
   uploadPhotos: (treeId, files) => {
     const form = new FormData()
     for (const file of files) form.append('files', file)

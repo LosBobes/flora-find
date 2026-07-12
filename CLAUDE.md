@@ -66,6 +66,13 @@ everything from one origin).
   passlib/bcrypt). Dependencies: `get_current_user` (401) and `get_current_admin` (403).
   `FLORA_JWT_SECRET` **must** be set in production.
 - `storage.py` — photo constraints: max 3/tree, 5 MB, JPEG/PNG/WebP only.
+- `identify.py` + `routers/identify_routes.py` — opt-in **photo plant identification**
+  for contributors who don't know what they've found. `POST /api/identify` (auth
+  required) sends the photo to the Pl@ntNet API and returns ranked candidates, each run
+  through `species_map.classify()` so a recognised species arrives pre-mapped to a
+  FloraFind category/type/season/hazard the add-plant form can auto-fill. Best-effort and
+  env-gated exactly like `enrichment.py`: disabled unless `FLORA_PLANTNET_API_KEY` is set,
+  and `GET /api/identify/config` lets the frontend hide the affordance when it's off.
 - `routers/tree_routes.py` — the bulk of the app. Single `GET /api/trees` endpoint does
   free-text search, category/type/hazard filters, `ripe_now`, viewport bbox **and**
   radius search. Radius search prefilters with a bbox in SQL then refines with a Python
@@ -95,6 +102,8 @@ during text search (search is global, ignores bounds — see `refreshTrees` in `
 | `FLORA_CORS_ORIGINS` | `localhost:5173,...` | Comma-separated allowed origins |
 | `FLORA_FRONTEND_DIST` | unset | Path to frontend build for same-origin serving (set in Docker image) |
 | `FLORA_AUTO_SEED` | `1` | Auto-load sample plants at startup when the `trees` table is empty; set to `0`/`false` to disable |
+| `FLORA_PLANTNET_API_KEY` | unset | Pl@ntNet API key that enables photo-based plant identification (`/api/identify`); unset ⇒ feature disabled and the frontend hides it |
+| `FLORA_PLANTNET_URL` | Pl@ntNet `identify/all` | Override the identification endpoint (e.g. a regional project or a test mock) |
 
 ## Deployment
 
