@@ -18,7 +18,12 @@ import { cn } from './lib/utils'
 const NEAR_ME_RADIUS_KM = 5
 
 // A floating map panel (form / details / export). Rounded card with a travelling
-// border beam; top-right on desktop, a bottom card on mobile (above the dock).
+// border beam; top-right on desktop, a bottom card on mobile.
+//
+// On mobile it must clear the collapsed MobileBottomBar (grab handle + search +
+// nav row, ~135px tall, fixed at bottom-0 z-40). Anchoring the bottom edge above
+// that band — plus z-50 so the panel always wins the stacking order — keeps the
+// form's footer (Save / Cancel) reachable instead of hidden behind the search bar.
 function FloatingPanel({ children }) {
   return (
     <motion.div
@@ -26,7 +31,7 @@ function FloatingPanel({ children }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 12, scale: 0.98 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="beam-border absolute inset-x-3 bottom-24 z-40 flex max-h-[68vh] flex-col overflow-hidden rounded-2xl border border-forest-100 bg-white shadow-card dark:border-white/10 dark:bg-[#12241a] md:inset-x-auto md:bottom-auto md:right-3 md:top-3 md:w-[360px]"
+      className="beam-border absolute inset-x-3 bottom-[calc(9rem+env(safe-area-inset-bottom))] z-50 flex max-h-[62vh] flex-col overflow-hidden rounded-2xl border border-forest-100 bg-white shadow-card dark:border-white/10 dark:bg-[#12241a] md:inset-x-auto md:bottom-auto md:right-3 md:top-3 md:z-40 md:max-h-[68vh] md:w-[360px]"
     >
       {/* Scroll on an inner wrapper, not on the beam-border element itself: the
           beam's absolutely-positioned ::before would otherwise scroll with the
