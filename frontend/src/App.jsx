@@ -650,7 +650,13 @@ export default function App() {
               <TreeDetails
                 tree={selectedTree}
                 currentUser={user}
-                onEdit={() => setEditingTree(selectedTree)}
+                onEdit={() => {
+                  // Close the map popup so the full-screen edit sheet is the only
+                  // surface up (mirrors the area-edit flow); otherwise the popup
+                  // can paint over the sheet and hide it.
+                  setSelectedTree(null)
+                  setEditingTree(selectedTree)
+                }}
                 onDelete={handleDelete}
                 onConfirm={handleConfirm}
                 onOpenProfile={openProfile}
