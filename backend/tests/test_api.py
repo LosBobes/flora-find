@@ -245,6 +245,67 @@ def test_update_category_and_hazard():
     assert resp.json()["hazard"] is True
 
 
+def _backdate_tree(tree_id, days):
+    """Push a tree's created_at into the past so freshness/staleness can be tested."""
+    from datetime import timedelta
+
+    from app.database import SessionLocal
+    from app.models import Tree, utcnow
+
+    db = SessionLocal()
+    try:
+        tree = db.get(Tree, tree_id)
+        tree.created_at = utcnow() - timedelta(days=days)
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_fungi_category_is_ephemeral_and_freshness():
+    token = register()["access_token"]
+    # A fresh fungi find is ephemeral but not yet stale, and advertises a window.
+    fungi = make_tree(token, name="Chanterelles", category="fungi", fruit_type="Chanterelle")
+    assert fungi["category"] == "fungi"
+    assert fungi["ephemeral"] is True
+    assert fungi["stale"] is False
+    assert fungi["fresh_until"] is not None
+
+    # A plant of a persistent category never expires on its own.
+    oak = make_tree(token, name="Big oak", category="tree", fruit_type="Oak")
+    assert oak["ephemeral"] is False
+    assert oak["fresh_until"] is None
+    assert oak["stale"] is False
+
+
+def test_old_fungi_goes_stale_but_old_tree_does_not():
+    token = register()["access_token"]
+    fungi = make_tree(token, name="Old porcini", category="fungi", fruit_type="Porcini")
+    oak = make_tree(token, name="Old oak", category="tree", fruit_type="Oak")
+    _backdate_tree(fungi["id"], days=30)
+    _backdate_tree(oak["id"], days=30)
+
+    by_id = {t["id"]: t for t in client.get("/api/trees").json()}
+    assert by_id[fungi["id"]]["stale"] is True
+    # Persistent plants stay fresh no matter how old the sighting is.
+    assert by_id[oak["id"]]["stale"] is False
+
+
+def test_confirming_present_refreshes_stale_fungi():
+    token = register()["access_token"]
+    fungi = make_tree(token, name="Reappearing morel", category="fungi", fruit_type="Morel")
+    _backdate_tree(fungi["id"], days=30)
+    assert client.get(f"/api/trees/{fungi['id']}").json()["stale"] is True
+
+    # A "still there" confirmation resets the freshness clock.
+    resp = client.post(
+        f"/api/trees/{fungi['id']}/confirmations",
+        json={"status": "present"},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["stale"] is False
+
+
 def test_fruit_types_scoped_by_category():
     token = register()["access_token"]
     make_tree(token)

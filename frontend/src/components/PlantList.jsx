@@ -1,6 +1,6 @@
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
-import { PlantIcon, HazardBadge, SeasonBadge, GoneBadge } from '../icons'
+import { PlantIcon, HazardBadge, SeasonBadge, GoneBadge, StaleBadge } from '../icons'
 import { plantColor } from '../fruitIcons'
 import { formatSeason } from '../seasons'
 import { BlurFade } from '../ui/blur-fade'
@@ -63,6 +63,11 @@ export default function PlantList({ trees, selectedTree, onSelect, countSuffix }
                   {tree.flagged_gone && (
                     <Tooltip label={t('tipGone')} className="shrink-0">
                       <GoneBadge size={16} />
+                    </Tooltip>
+                  )}
+                  {tree.stale && !tree.flagged_gone && (
+                    <Tooltip label={t('tipStale')} className="shrink-0">
+                      <StaleBadge size={16} />
                     </Tooltip>
                   )}
                 </span>

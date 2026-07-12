@@ -69,10 +69,12 @@ const STRINGS = {
     tipHazard: 'Poisonous / hazardous',
     tipInSeason: 'In season now',
     tipGone: 'Reported gone',
+    tipStale: 'Likely gone (mushrooms are fleeting)',
 
     // Details
     hazardFlag: 'Poisonous / hazardous: do not touch or eat',
     goneFlag: ({ count }) => `Reported gone by ${count} ${count === 1 ? 'person' : 'people'}`,
+    staleFlag: 'Mushrooms are fleeting, this find may already be gone',
     fruitLabel: 'Fruit:',
     typeLabel: 'Type:',
     bloomsLabel: 'Blooms:',
@@ -104,7 +106,9 @@ const STRINGS = {
     namePlaceholder_shrub: 'e.g. Lilac hedge on the corner',
     namePlaceholder_flowerbed: 'e.g. Tulip bed by the fountain',
     namePlaceholder_vine: 'e.g. Wisteria over the gate',
+    namePlaceholder_fungi: 'e.g. Chanterelles under the oaks',
     namePlaceholder_other: 'e.g. Herb patch by the path',
+    ephemeralHint: 'Mushrooms are fleeting: unless someone confirms it, this find is treated as gone after about two weeks.',
     fruit: 'Fruit',
     plantType: 'Plant type',
     selectTypePlaceholder: 'Select a type…',
@@ -229,6 +233,7 @@ const STRINGS = {
     cat_shrub: 'Shrub / bush',
     cat_flowerbed: 'Flowerbed',
     cat_vine: 'Vine / climber',
+    cat_fungi: 'Mushroom / fungi',
     cat_other: 'Other plant',
 
     // PWA install
@@ -304,10 +309,12 @@ const STRINGS = {
     tipHazard: 'Otrovno / opasno',
     tipInSeason: 'Trenutno u sezoni',
     tipGone: 'Prijavljeno da je nestala',
+    tipStale: 'Verovatno nestala (gljive su prolazne)',
 
     // Details
     hazardFlag: 'Otrovno / opasno: ne dirati i ne jesti',
     goneFlag: ({ count }) => `${count} ${srPlural(count, 'osoba je', 'osobe su', 'osoba je')} prijavilo da je nestala`,
+    staleFlag: 'Gljive su prolazne, ovaj nalaz je možda već nestao',
     fruitLabel: 'Plod:',
     typeLabel: 'Tip:',
     bloomsLabel: 'Cveta:',
@@ -339,7 +346,9 @@ const STRINGS = {
     namePlaceholder_shrub: 'npr. Živica jorgovana na ćošku',
     namePlaceholder_flowerbed: 'npr. Leja lala kod fontane',
     namePlaceholder_vine: 'npr. Glicinija nad kapijom',
+    namePlaceholder_fungi: 'npr. Lisičarke ispod hrastova',
     namePlaceholder_other: 'npr. Leja začina uz stazu',
+    ephemeralHint: 'Gljive su prolazne: ako je niko ne potvrdi, ovaj nalaz se smatra nestalim nakon otprilike dve nedelje.',
     fruit: 'Plod',
     plantType: 'Tip biljke',
     selectTypePlaceholder: 'Izaberi tip…',
@@ -464,6 +473,7 @@ const STRINGS = {
     cat_shrub: 'Žbun / grm',
     cat_flowerbed: 'Cvetna leja',
     cat_vine: 'Puzavica',
+    cat_fungi: 'Gljiva / pečurka',
     cat_other: 'Druga biljka',
 
     // PWA install

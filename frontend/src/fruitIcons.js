@@ -10,6 +10,7 @@ export const PLANT_CATEGORIES = [
   { value: 'shrub', labelKey: 'cat_shrub', color: '#6a994e' },
   { value: 'flowerbed', labelKey: 'cat_flowerbed', color: '#9b5de5' },
   { value: 'vine', labelKey: 'cat_vine', color: '#1b9e77' },
+  { value: 'fungi', labelKey: 'cat_fungi', color: '#c1802f' },
   { value: 'other', labelKey: 'cat_other', color: '#6b7a6b' },
 ]
 
@@ -107,6 +108,18 @@ export const TYPE_SUGGESTIONS = {
   shrub: ['Lilac', 'Rose', 'Boxwood', 'Hydrangea', 'Juniper', 'Forsythia', 'Hawthorn', 'Blackberry'],
   flowerbed: ['Tulips', 'Roses', 'Lavender', 'Sunflowers', 'Daffodils', 'Peonies', 'Wildflowers'],
   vine: ['Ivy', 'Wisteria', 'Grape', 'Climbing rose', 'Virginia creeper'],
+  fungi: [
+    'Chanterelle',
+    'Porcini',
+    'Field mushroom',
+    'Parasol mushroom',
+    'Morel',
+    'Oyster mushroom',
+    'Honey fungus',
+    'Puffball',
+    'Death cap',
+    'Fly agaric',
+  ],
   other: [],
 }
 

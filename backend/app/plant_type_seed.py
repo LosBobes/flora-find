@@ -77,6 +77,16 @@ NAMES_SR = {
     "ivy": "Bršljan",
     "wisteria": "Glicinija",
     "virginia creeper": "Divlja loza",
+    "chanterelle": "Lisičarka",
+    "porcini": "Vrganj",
+    "field mushroom": "Livadska pečurka",
+    "parasol mushroom": "Sunčanica",
+    "morel": "Smrčak",
+    "oyster mushroom": "Bukovača",
+    "honey fungus": "Puza",
+    "puffball": "Puhara",
+    "death cap": "Zelena pupavka",
+    "fly agaric": "Muhara",
     "poison ivy": "Otrovni bršljan",
     "poison oak": "Otrovni hrast",
     "giant hogweed": "Džinovska šapa",
@@ -118,6 +128,10 @@ BUILTIN_TYPES = {
         "Wildflowers",
     ],
     "vine": ["Ivy", "Wisteria", "Grape", "Climbing rose", "Virginia creeper"],
+    "fungi": [
+        "Chanterelle", "Porcini", "Field mushroom", "Parasol mushroom", "Morel",
+        "Oyster mushroom", "Honey fungus", "Puffball", "Death cap", "Fly agaric",
+    ],
     "other": [],
 }
 

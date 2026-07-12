@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,9 +34,24 @@ GONE_FLAG_THRESHOLD = 3
 
 # What kind of planting an entry is. "fruit_tree" keeps the original FloraFind
 # behaviour; the rest let the map hold ornamental (deciduous) trees, evergreen
-# trees/conifers, shrubs, flowerbeds, vines and anything else growing in the
-# neighbourhood.
-PLANT_CATEGORIES = ("fruit_tree", "tree", "evergreen", "shrub", "flowerbed", "vine", "other")
+# trees/conifers, shrubs, flowerbeds, vines, foraged fungi (mushrooms) and
+# anything else growing in the neighbourhood.
+PLANT_CATEGORIES = ("fruit_tree", "tree", "evergreen", "shrub", "flowerbed", "vine", "fungi", "other")
+
+# Some finds are far more ephemeral than a tree or a flowerbed: a mushroom flush
+# fruits for days to a couple of weeks and is then gone, whether or not anyone
+# reports it. For these categories a sighting is treated as "fresh" only for a
+# short window after it was last confirmed present (or first reported); once the
+# window lapses the find is flagged as probably gone. Confirming a find is
+# "still there" resets the clock. Persistent plants never expire on their own.
+EPHEMERAL_CATEGORIES = frozenset({"fungi"})
+EPHEMERAL_FRESH_DAYS = 14
+
+
+def _as_utc(dt: datetime) -> datetime:
+    """Normalise a possibly-naive timestamp (SQLite drops tzinfo) to UTC-aware so
+    it can be compared with ``utcnow()``."""
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
 
 
 def month_in_season(month: int, start: int | None, end: int | None) -> bool:
@@ -95,6 +110,29 @@ class Tree(Base):
     @property
     def flagged_gone(self) -> bool:
         return self.gone_reports >= GONE_FLAG_THRESHOLD
+
+    @property
+    def ephemeral(self) -> bool:
+        """Whether this kind of find is short-lived (a mushroom flush) rather than
+        a standing plant, and so ages out of "fresh" on its own."""
+        return self.category in EPHEMERAL_CATEGORIES
+
+    @property
+    def fresh_until(self) -> datetime | None:
+        """For ephemeral finds, the moment the sighting stops being trustworthy:
+        a short window after it was last confirmed present (or, failing that,
+        first reported). ``None`` for persistent plants, which don't expire."""
+        if not self.ephemeral:
+            return None
+        anchor = self.last_confirmed_at or self.created_at
+        return _as_utc(anchor) + timedelta(days=EPHEMERAL_FRESH_DAYS)
+
+    @property
+    def stale(self) -> bool:
+        """An ephemeral find whose freshness window has lapsed with no recent
+        confirmation, so it is probably no longer there."""
+        until = self.fresh_until
+        return until is not None and utcnow() > until
 
 
 class Area(Base):

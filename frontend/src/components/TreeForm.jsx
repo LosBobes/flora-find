@@ -17,9 +17,11 @@ const PHOTO_TYPES = 'image/jpeg,image/png,image/webp'
 const CATEGORY_EMOJI = {
   fruit_tree: '🍎',
   tree: '🌳',
+  evergreen: '🌲',
   shrub: '🌿',
   flowerbed: '🌸',
   vine: '🍇',
+  fungi: '🍄',
   other: '🌱',
 }
 
@@ -53,6 +55,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
 
   const isFruit = category === 'fruit_tree'
   const isFlowerbed = category === 'flowerbed'
+  const isFungi = category === 'fungi'
   const typeOptions = byCategory(category)
 
   // Mirrors the shape the map marker / list icon expect, so the preview shows
@@ -201,6 +204,14 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
           })}
         </div>
       </div>
+
+      {/* Fungi are far more ephemeral than plants: warn that the find ages out. */}
+      {isFungi && (
+        <p className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+          <span aria-hidden className="text-sm leading-none">⏳</span>
+          {t('ephemeralHint')}
+        </p>
+      )}
 
       <label className={labelText}>
         {t('name')}

@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { categoryInfo, plantColor } from '../fruitIcons'
-import { PlantIcon, GoneBadge } from '../icons'
+import { PlantIcon, GoneBadge, StaleBadge } from '../icons'
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { formatSeason, seasonMonths } from '../seasons'
@@ -129,6 +129,12 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
           <p className="my-2 flex items-center gap-1.5 rounded-lg bg-orange-50 px-2.5 py-1.5 text-xs font-semibold text-orange-800 dark:bg-orange-500/15 dark:text-orange-300">
             <GoneBadge size={16} className="shrink-0" />
             {t('goneFlag', { count: tree.gone_reports })}
+          </p>
+        )}
+        {tree.stale && !tree.flagged_gone && (
+          <p className="my-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 dark:bg-amber-500/15 dark:text-amber-200">
+            <StaleBadge size={16} className="shrink-0" />
+            {t('staleFlag')}
           </p>
         )}
 

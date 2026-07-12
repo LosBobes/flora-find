@@ -90,6 +90,20 @@ PLANTS = [
     ("fruit_tree", "Hazelnut hedge, Miljakovac", "Hazelnut", 44.7555, 20.4625,
      "Corylus avellana", "Leska bushes at the forest edge — nuts ready to gather in late summer.", 8, 9, False),
 
+    # --- Belgrade: fungi (ephemeral — expect these to come and go fast) ---
+    ("fungi", "Chanterelles under the Košutnjak oaks", "Chanterelle", 44.7648, 20.4360,
+     "Cantharellus cibarius", "Golden lisičarke flushing after autumn rain among the oaks; pick within days.", 9, 11, False),
+    ("fungi", "Porcini flush, Košutnjak forest", "Porcini", 44.7635, 20.4390,
+     "Boletus edulis", "Vrganj popping up along the mossy forest path after a wet spell; gone in a week.", 9, 10, False),
+    ("fungi", "Parasol mushrooms, Zvezdara forest clearing", "Parasol mushroom", 44.7940, 20.5120,
+     "Macrolepiota procera", "Tall sunčanice on a grassy clearing; great fried, but they collapse fast.", 9, 10, False),
+    ("fungi", "Oyster mushrooms on a fallen poplar, Ada", "Oyster mushroom", 44.7855, 20.4185,
+     "Pleurotus ostreatus", "Bukovača shelving on a dead riverside poplar; fruits in cool damp spells.", 10, 12, False),
+    ("fungi", "Death cap under Košutnjak beeches", "Death cap", 44.7658, 20.4345,
+     "Amanita phalloides", "DEADLY POISONOUS — zelena pupavka. Do NOT pick or eat; can be fatal.", 9, 10, True),
+    ("fungi", "Fly agaric ring, Fruška Gora birches", "Fly agaric", 45.1560, 19.7050,
+     "Amanita muscaria", "Red-and-white muhara among the birches. Poisonous — look, don't eat.", 9, 10, True),
+
     # --- Belgrade: hazards ---
     ("other", "Giant hogweed by the Sava bank", "Giant hogweed", 44.8135, 20.4525,
      "Heracleum mantegazzianum", "DO NOT TOUCH — sap causes severe skin burns in sunlight. Report to the city.", 6, 7, True),
