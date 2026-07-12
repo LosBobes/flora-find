@@ -168,12 +168,12 @@
    chunky proportional Pixelify Sans pixel font (index.html), and the app's
    brand-green copy is retinted to Stardew's dark cocoa-brown ink. */
 .theme-stardew {
-  --sd-panel: #ecc998;      /* warm honey-tan panel interior */
-  --sd-panel-hi: #f6e0bb;   /* lighter highlight tan */
-  --sd-wood: #c68a4e;
+  --sd-panel: #f2d7a4;      /* warm cream-honey panel interior */
+  --sd-panel-hi: #f9e7c1;   /* lighter highlight tan */
+  --sd-wood: #cf9256;       /* amber frame band */
   --sd-wood-dark: #8a5322;
-  --sd-wood-edge: #5f3714;  /* dark outer border */
-  --sd-wood-hi: #e2a866;    /* golden inner-bevel highlight */
+  --sd-wood-edge: #4a2a0f;  /* near-black dark outer outline */
+  --sd-wood-hi: #f4d8a0;    /* cream inner-bevel highlight */
   --sd-ink: #4a2c12;        /* dark cocoa text */
   --sd-ink-soft: #6b4423;
   /* Smooth board: soft vertical warmth + very faint horizontal plank seams.
@@ -219,19 +219,27 @@
   font-weight: 700;
 }
 
-/* Floating panels become Stardew HUD boards: smooth honey fill and a chunky
-   carved border — dark outer edge, bright golden inner bevel, dropped bottom
-   lip so the board looks thick. */
+/* Floating panels become Stardew HUD boards: a smooth honey fill inside a chunky,
+   carved WOODEN PICTURE FRAME. The frame is a real bordered band (6px) painted
+   with a warm→cool diagonal gradient via border-image so it reads as lit from the
+   top-left and shaded at the bottom-right — carved, not flat. Around it a thin
+   near-black outline; inside it a bright cream bevel highlight and a soft groove
+   where the board sinks to the interior; below it a thick dark lip + drop shadow
+   so the whole panel looks like a solid plank you could pick up. */
 .theme-stardew .shadow-card {
   background-color: var(--sd-panel) !important;
   background-image: var(--sd-wood-grain) !important;
-  border-color: var(--sd-wood-edge) !important;
-  border-width: 4px;
+  border-color: var(--sd-wood) !important;         /* solid amber wooden frame band */
+  border-width: 6px !important;
+  border-radius: 12px;
   box-shadow:
-    inset 0 0 0 2px var(--sd-wood-hi),
-    inset 0 0 0 4px rgba(120, 74, 34, 0.35),
-    0 6px 0 0 var(--sd-wood-dark),
-    0 14px 28px rgba(74, 44, 18, 0.36);
+    0 0 0 2px var(--sd-wood-edge),                 /* thin near-black outer outline */
+    inset 0 0 0 2px var(--sd-wood-hi),             /* bright cream inner bevel */
+    inset 0 0 0 4px rgba(120, 74, 34, 0.28),       /* soft groove where board sinks in */
+    inset 0 3px 5px rgba(255, 247, 228, 0.4),      /* top interior sheen */
+    inset 0 -4px 8px rgba(120, 74, 34, 0.12),      /* faint bottom interior shade */
+    0 6px 0 0 var(--sd-wood-dark),                 /* thick dark bottom lip (plank depth) */
+    0 15px 30px rgba(74, 44, 18, 0.42);            /* grounded drop shadow */
 }
 
 /* Top bar reads as a honey-oak plank spanning the header. */
