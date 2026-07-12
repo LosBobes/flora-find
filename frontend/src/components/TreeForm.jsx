@@ -43,6 +43,10 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
   const [seasonEnd, setSeasonEnd] = useState(initial?.season_end ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [photos, setPhotos] = useState([])
+  // When editing a plant, its already-uploaded photos can be pruned; we keep the
+  // survivors here and collect the removed ids so onSubmit can delete them.
+  const [existingPhotos, setExistingPhotos] = useState(isArea ? [] : (initial?.photos ?? []))
+  const [removedPhotoIds, setRemovedPhotoIds] = useState([])
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -84,8 +88,14 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
   }
 
   function handlePhotosChange(event) {
-    const files = Array.from(event.target.files).slice(0, MAX_PHOTOS)
+    const room = Math.max(0, MAX_PHOTOS - existingPhotos.length)
+    const files = Array.from(event.target.files).slice(0, room)
     setPhotos(files)
+  }
+
+  function removeExistingPhoto(id) {
+    setExistingPhotos((current) => current.filter((photo) => photo.id !== id))
+    setRemovedPhotoIds((current) => [...current, id])
   }
 
   // Apply a photo-identification match: fill in whatever the recogniser is
@@ -152,7 +162,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
       ? { ...common, polygon }
       : { ...common, lat: position.lat, lng: position.lng }
     try {
-      await onSubmit(payload, photos)
+      await onSubmit(payload, photos, removedPhotoIds)
     } catch (err) {
       setError(err.message)
       setBusy(false)
@@ -359,16 +369,42 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
         />
       </label>
 
-      {!initial && !isArea && (
-        <label className={labelText}>
+      {!isArea && (
+        <div className={labelText}>
           {t('photos', { max: MAX_PHOTOS })}
-          <input
-            type="file"
-            accept={PHOTO_TYPES}
-            multiple
-            onChange={handlePhotosChange}
-            className="mt-1 block w-full text-sm text-forest-600 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-forest-700"
-          />
+          {/* Already-uploaded photos (editing only): each can be pruned before saving. */}
+          {existingPhotos.length > 0 && (
+            <span className="mt-2 flex flex-wrap gap-1.5">
+              {existingPhotos.map((photo) => (
+                <span key={photo.id} className="relative">
+                  <img
+                    className="size-14 rounded-lg border border-forest-100 object-cover"
+                    src={photo.url}
+                    alt={photo.attribution ?? name}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeExistingPhoto(photo.id)}
+                    aria-label={t('removePhoto')}
+                    className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-red-600 text-white shadow-sm transition hover:bg-red-700"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </span>
+          )}
+          {existingPhotos.length < MAX_PHOTOS && (
+            <input
+              type="file"
+              accept={PHOTO_TYPES}
+              multiple
+              onChange={handlePhotosChange}
+              className="mt-2 block w-full text-sm text-forest-600 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-forest-700"
+            />
+          )}
           {photos.length > 0 && (
             <span className="mt-2 flex gap-1.5">
               {photos.map((file, index) => (
@@ -381,7 +417,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
               ))}
             </span>
           )}
-        </label>
+        </div>
       )}
 
       {error && <p className="text-sm font-medium text-red-600">{error}</p>}
