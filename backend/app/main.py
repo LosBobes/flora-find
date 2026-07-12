@@ -6,20 +6,38 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import Base, SessionLocal, engine
 from .migrations import run_migrations
+from .models import Tree
 from .plant_type_seed import backfill_plant_types, seed_builtin_plant_types
 from .routers import auth_routes, plant_type_routes, tree_routes
+from .sample_data import seed_sample_plants
 from .storage import UPLOAD_DIR
 
 run_migrations(engine)
 Base.metadata.create_all(bind=engine)
 
+
+def _auto_seed_enabled() -> bool:
+    """Auto-seeding the sample plants is on by default so a fresh production
+    database isn't served empty. Set FLORA_AUTO_SEED to a falsy value
+    (0/false/no/off) to disable it."""
+    return os.environ.get("FLORA_AUTO_SEED", "1").strip().lower() not in {
+        "0", "false", "no", "off", "",
+    }
+
+
 # Ensure every category offers its built-in vocabulary (even on a fresh database
 # with no plants yet), then register a plant type for any fruit_type already in
 # use (e.g. seeded data or a database from before plant types existed) so the
-# vocabulary is never empty.
+# vocabulary is never empty. Finally, if the database has no plants at all,
+# populate the Belgrade/Serbia sample set so a fresh deployment starts with a
+# useful map instead of a blank one.
 with SessionLocal() as _db:
     seed_builtin_plant_types(_db)
     backfill_plant_types(_db)
+    if _auto_seed_enabled() and _db.query(Tree).count() == 0:
+        inserted = seed_sample_plants(_db)
+        if inserted:
+            print(f"[florafind] auto-seeded {inserted} sample plants into empty database")
 
 app = FastAPI(
     title="FloraFind API",
