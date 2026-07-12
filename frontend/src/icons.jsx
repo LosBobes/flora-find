@@ -72,6 +72,14 @@ function CategoryGlyph({ category }) {
           <path d="M12 5.5 C 15.2 5.5 17.8 8.1 17.8 11.6 C 17.8 15.3 15.1 18.3 12 18.3 C 12 14 12 9.6 12 5.5 Z" />
         </>
       )
+    case 'fungi':
+      // A capped mushroom: rounded cap over a short stem.
+      return (
+        <>
+          <path d="M4.5 11.6 C 4.5 7 7.9 4 12 4 C 16.1 4 19.5 7 19.5 11.6 Z" />
+          <rect x="10.2" y="11.6" width="3.6" height="7.4" rx="1.8" />
+        </>
+      )
     case 'other':
     default:
       // A small seedling / sprout with two leaves.
@@ -238,6 +246,19 @@ export function SeasonBadge({ size = 18, className, title }) {
       <circle cx="12" cy="12" r="11" fill="#2e9e4f" />
       <path d="M16.8 6.6 C 9.9 6.6 6.6 10.3 6.6 16.8 C 13.5 16.8 16.8 13.1 16.8 6.6 Z" fill="#fff" />
       <path d="M8.8 15.4 C 11 12.2 13.6 9.4 15.8 7.8" stroke="#2e9e4f" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// Shown on ephemeral finds (mushrooms) whose freshness window has lapsed: an
+// hourglass on an amber disc, meaning "this is probably gone by now".
+export function StaleBadge({ size = 18, className, title }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} role="img" aria-label={title}>
+      {title ? <title>{title}</title> : null}
+      <circle cx="12" cy="12" r="11" fill="#b45309" />
+      <path d="M8 6.5 h8 M8 17.5 h8" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" />
+      <path d="M8.4 6.8 C 8.4 10 15.6 10 15.6 6.8 M8.4 17.2 C 8.4 14 15.6 14 15.6 17.2" fill="#fff" />
     </svg>
   )
 }

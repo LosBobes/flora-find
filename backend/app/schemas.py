@@ -32,7 +32,9 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
-PlantCategory = Literal["fruit_tree", "tree", "evergreen", "shrub", "flowerbed", "vine", "other"]
+PlantCategory = Literal[
+    "fruit_tree", "tree", "evergreen", "shrub", "flowerbed", "vine", "fungi", "other"
+]
 
 
 class PlantTypeCreate(BaseModel):
@@ -227,4 +229,9 @@ class TreeOut(TreeBase):
     last_confirmed_at: datetime | None = None
     gone_reports: int = 0
     flagged_gone: bool = False
+    # Ephemeral finds (fungi) age out of "fresh" on their own; persistent plants
+    # don't. ``fresh_until`` is null and ``stale`` false for non-ephemeral plants.
+    ephemeral: bool = False
+    fresh_until: datetime | None = None
+    stale: bool = False
     distance_km: float | None = None

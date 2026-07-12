@@ -5,8 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 FloraFind is a community map of neighborhood plants (fruit trees, ornamental trees,
-evergreens, shrubs, flowerbeds, vines) built on MapLibre GL + OpenStreetMap — **no map API key
-required**. FastAPI/SQLAlchemy backend, React/Vite frontend, JWT email-password auth.
+evergreens, shrubs, flowerbeds, vines) and foraged fungi built on MapLibre GL +
+OpenStreetMap — **no map API key required**. FastAPI/SQLAlchemy backend, React/Vite
+frontend, JWT email-password auth.
 
 ## Commands
 
@@ -46,8 +47,13 @@ everything from one origin).
   SQLite (default, dev) for Postgres (docker-compose) transparently.
 - `models.py` — `User`, `Tree`, `TreeConfirmation`, `TreePhoto`. Notable: derived
   properties live on `Tree` (`in_season`, `last_confirmed_at`, `gone_reports`,
-  `flagged_gone`). `GONE_FLAG_THRESHOLD = 3` gone-votes flags a tree. `PLANT_CATEGORIES`
-  is the canonical category tuple. Season is stored as `season_start`/`season_end`
+  `flagged_gone`, `ephemeral`, `fresh_until`, `stale`). `GONE_FLAG_THRESHOLD = 3`
+  gone-votes flags a tree. `PLANT_CATEGORIES` is the canonical category tuple.
+  `EPHEMERAL_CATEGORIES` (currently `fungi`) are short-lived finds: a sighting is
+  "fresh" only for `EPHEMERAL_FRESH_DAYS` (14) after it was last confirmed present
+  (or first reported), after which `stale` flips true — a "still there" confirmation
+  resets the clock. Persistent plants never go stale. No new columns: this rides on
+  `category` + `created_at` + confirmations. Season is stored as `season_start`/`season_end`
   month integers and **wraps around the new year** (e.g. Nov→Feb) — this wrap logic is
   duplicated in three places: `month_in_season()` (Python), the `ripe_now` SQL filter in
   `tree_routes.list_trees`, and the frontend; keep them in sync.
