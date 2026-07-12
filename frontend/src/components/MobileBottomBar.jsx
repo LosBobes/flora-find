@@ -314,7 +314,7 @@ export default function MobileBottomBar({
       >
         {/* Always-visible header: grab handle + search + nav. This is the band
             the map's PanToSelected keeps popups clear of (data attribute). */}
-        <div ref={headerRef} data-map-bottom-chrome className="shrink-0 px-3 pb-3">
+        <div ref={headerRef} data-map-bottom-chrome className="shrink-0 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <div
             onPointerDown={(event) => dragControls.start(event)}
             onClick={() => setExpanded((v) => !v)}
