@@ -67,10 +67,11 @@ function SearchIcon() {
   )
 }
 
-function BarButton({ name, label, active, onClick }) {
+function BarButton({ name, label, active, onClick, tourId }) {
   return (
     <button
       type="button"
+      data-tour={tourId}
       onClick={onClick}
       title={label}
       aria-label={label}
@@ -117,6 +118,7 @@ export default function MobileBottomBar({
   drawingArea,
   onToggleDraw,
   filterProps,
+  onHelp,
 }) {
   const { t, lang, setLang } = useI18n()
   const { searchText, setSearchText } = filterProps
@@ -150,6 +152,22 @@ export default function MobileBottomBar({
   return (
     <>
       <Drawer open={panel === 'settings'} title={t('mapSettings')} onClose={() => setPanel(null)}>
+        <button
+          type="button"
+          onClick={() => {
+            setPanel(null)
+            onHelp?.()
+          }}
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-forest-200 bg-forest-50 px-3 py-2.5 text-sm font-semibold text-forest-700 transition active:scale-[0.99] dark:border-white/15 dark:bg-white/5 dark:text-forest-100"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2-2.5 3.4" strokeLinecap="round" />
+            <circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none" />
+          </svg>
+          {t('helpTitle')}
+        </button>
+
         <SectionLabel>{t('language')}</SectionLabel>
         <div className="mb-4 flex gap-1 rounded-xl bg-forest-50 p-1 dark:bg-white/5">
           {LANGUAGES.map((entry) => (
@@ -300,6 +318,7 @@ export default function MobileBottomBar({
               <SearchIcon />
             </span>
             <input
+              data-tour="search"
               className="w-full rounded-xl border border-forest-100 bg-white py-2.5 pl-10 pr-3 text-sm text-forest-900 shadow-sm outline-none focus:border-forest-400 focus:ring-2 focus:ring-forest-200 dark:border-white/10 dark:bg-white/5 dark:text-forest-50 dark:placeholder-forest-300"
               placeholder={t('searchPlaceholder')}
               value={searchText}
@@ -308,7 +327,7 @@ export default function MobileBottomBar({
           </div>
 
           <div className="flex items-center justify-between gap-1">
-            <BarButton name="add" label={t('registerPlant')} active={addMode} onClick={onToggleAdd} />
+            <BarButton name="add" tourId="register" label={t('registerPlant')} active={addMode} onClick={onToggleAdd} />
             <BarButton
               name="polygon"
               label={t('drawArea')}
@@ -317,6 +336,7 @@ export default function MobileBottomBar({
             />
             <BarButton
               name="location"
+              tourId="near-me"
               label={t('nearMe')}
               active={!!nearMe || locating}
               onClick={onNearMe}
@@ -337,6 +357,7 @@ export default function MobileBottomBar({
             />
             <BarButton
               name="sliders"
+              tourId="filters"
               label={t('filters')}
               active={panel === 'filters'}
               onClick={() => toggle('filters')}

@@ -57,7 +57,7 @@ export default function Filters({
         isBar ? 'flex flex-1 items-center gap-2' : 'flex flex-col gap-3',
       )}
     >
-      <div className={cn('relative', isBar ? 'flex-1 min-w-[160px] max-w-md' : 'w-full')}>
+      <div data-tour="search" className={cn('relative', isBar ? 'flex-1 min-w-[160px] max-w-md' : 'w-full')}>
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-forest-400">
           <SearchIcon />
         </span>
@@ -84,6 +84,7 @@ export default function Filters({
       />
       <button
         type="button"
+        data-tour="filters"
         onClick={() => setRipeNow((value) => !value)}
         title={t('inSeasonTitle')}
         className={cn(

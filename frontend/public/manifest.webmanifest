@@ -1,0 +1,36 @@
+{
+  "name": "FloraFind, plants near you",
+  "short_name": "FloraFind",
+  "description": "A community map of neighbourhood plants — fruit trees, ornamental trees, shrubs, flowerbeds and vines, mapped by people like you.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f1f8f1",
+  "theme_color": "#1b5e20",
+  "categories": ["lifestyle", "navigation", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

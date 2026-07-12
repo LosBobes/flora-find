@@ -13,6 +13,8 @@ import TopNav from './components/TopNav'
 import PlantList from './components/PlantList'
 import MapSettingsControl from './components/MapSettingsControl'
 import MobileBottomBar from './components/MobileBottomBar'
+import Tutorial, { TOUR_DONE_KEY } from './components/Tutorial'
+import InstallPrompt from './components/InstallPrompt'
 import { ShimmerButton } from './ui/shimmer-button'
 import { cn } from './lib/utils'
 
@@ -71,6 +73,7 @@ export default function App() {
   const [drawingArea, setDrawingArea] = useState(false)
   const [draftPolygon, setDraftPolygon] = useState([]) // [{lat, lng}]
   const [areaFormOpen, setAreaFormOpen] = useState(false)
+  const [tourOpen, setTourOpen] = useState(false)
 
   const showPlants = layerView !== 'areas'
   const showAreas = layerView !== 'plants'
@@ -135,6 +138,14 @@ export default function App() {
     api.fruitTypes(categoryFilter || undefined).then(setFruitTypes).catch(() => {})
     setFruitFilter('')
   }, [categoryFilter])
+
+  // First-visit onboarding: launch the interactive tour once the layout has
+  // settled so the spotlight can find its targets. Runs only until dismissed.
+  useEffect(() => {
+    if (localStorage.getItem(TOUR_DONE_KEY) === '1') return
+    const timer = setTimeout(() => setTourOpen(true), 700)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Drop a selection when its layer is hidden so no stray popup lingers.
   useEffect(() => {
@@ -409,6 +420,7 @@ export default function App() {
         filterProps={filterProps}
         onLogin={() => setAuthModal('login')}
         onRegister={() => setAuthModal('register')}
+        onHelp={() => setTourOpen(true)}
       />
 
       <div className="relative flex min-h-0 flex-1">
@@ -423,7 +435,7 @@ export default function App() {
               × {t('cancelAdding')}
             </button>
           ) : (
-            <ShimmerButton className="w-full" onClick={startAddMode}>
+            <ShimmerButton data-tour="register" className="w-full" onClick={startAddMode}>
               + {t('registerPlant')}
             </ShimmerButton>
           )}
@@ -434,6 +446,7 @@ export default function App() {
           )}
           <button
             type="button"
+            data-tour="near-me"
             onClick={handleNearMe}
             disabled={locating}
             className={cn(
@@ -659,7 +672,13 @@ export default function App() {
         drawingArea={drawingArea || areaFormOpen}
         onToggleDraw={toggleDrawArea}
         filterProps={filterProps}
+        onHelp={() => setTourOpen(true)}
       />
+
+      {/* Keep the install banner out of the way while the guided tour is up —
+          the tour's final step has its own install call-to-action. */}
+      {!tourOpen && <InstallPrompt />}
+      <Tutorial open={tourOpen} onClose={() => setTourOpen(false)} />
 
       {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} />}
     </div>
