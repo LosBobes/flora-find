@@ -20,6 +20,26 @@ import { cn } from './lib/utils'
 
 const NEAR_ME_RADIUS_KM = 5
 
+// Mobile browsers discard a backgrounded tab, so add-mode state (which lives only
+// in memory) is lost the moment a user switches apps — e.g. to look up a plant's
+// name — and returns to a reset map with their placed pin gone. Persist the draft
+// pin so it survives that round trip and the add form reopens where they left it.
+const DRAFT_STORAGE_KEY = 'florafind_add_draft'
+
+function loadDraftPosition() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (typeof parsed?.lat === 'number' && typeof parsed?.lng === 'number') {
+      return { lat: parsed.lat, lng: parsed.lng }
+    }
+  } catch {
+    // Ignore malformed/unavailable storage; just start without a restored draft.
+  }
+  return null
+}
+
 // A floating map panel (form / details / export). Rounded card with a travelling
 // border beam; top-right on desktop, a bottom card on mobile.
 //
@@ -63,8 +83,9 @@ export default function App() {
   const [panTarget, setPanTarget] = useState(null)
 
   const [authModal, setAuthModal] = useState(null) // 'login' | 'register' | null
-  const [addMode, setAddMode] = useState(false)
-  const [draftPosition, setDraftPosition] = useState(null)
+  // Restore a persisted draft pin (if any) so add-mode survives an app switch.
+  const [addMode, setAddMode] = useState(() => loadDraftPosition() !== null)
+  const [draftPosition, setDraftPosition] = useState(loadDraftPosition)
   const [editingTree, setEditingTree] = useState(null)
   const [editingArea, setEditingArea] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -138,6 +159,27 @@ export default function App() {
     api.fruitTypes(categoryFilter || undefined).then(setFruitTypes).catch(() => {})
     setFruitFilter('')
   }, [categoryFilter])
+
+  // On first mount, recentre the map on a restored draft pin so a returning user
+  // lands where they placed it rather than at the default map view.
+  useEffect(() => {
+    const draft = loadDraftPosition()
+    if (draft) setPanTarget({ ...draft, ts: Date.now() })
+  }, [])
+
+  // Keep the persisted draft in sync: store it while a pin is placed, clear it
+  // once the user leaves add-mode, cancels, or saves the plant.
+  useEffect(() => {
+    try {
+      if (addMode && draftPosition) {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftPosition))
+      } else {
+        localStorage.removeItem(DRAFT_STORAGE_KEY)
+      }
+    } catch {
+      // Storage may be unavailable (private mode); persistence is best-effort.
+    }
+  }, [addMode, draftPosition])
 
   // First-visit onboarding: launch the interactive tour once the layout has
   // settled so the spotlight can find its targets. Runs only until dismissed.
@@ -551,7 +593,7 @@ export default function App() {
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                className="absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
+                className="absolute inset-x-3 top-3 z-40 mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
               >
                 <span className="px-1 text-xs font-medium text-forest-700 dark:text-forest-100">
                   {t('drawAreaProgress', { count: draftPolygon.length })}
@@ -642,7 +684,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="pointer-events-none absolute bottom-24 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-forest-700 px-5 py-2.5 text-sm font-medium text-white shadow-card md:bottom-6"
+                className="pointer-events-none absolute bottom-24 left-1/2 z-40 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-2xl bg-forest-700 px-5 py-2.5 text-center text-sm font-medium text-white shadow-card md:bottom-6"
               >
                 {notice}
               </motion.div>
