@@ -34,9 +34,12 @@ on every PR and push to `main`. There is no linter configured; there are **no fr
 
 ### Backend request flow
 `main.py` wires everything at import time: it runs `run_migrations(engine)` **before**
-`Base.metadata.create_all()`, mounts CORS, includes the two routers, mounts `/uploads`
-(static photos), and — if `FLORA_FRONTEND_DIST` points at a build — mounts the frontend
-at `/` **last** so API routes keep precedence (this is how the Docker image serves
+`Base.metadata.create_all()`, seeds the plant-type vocabulary, **auto-seeds the sample
+plants when the `trees` table is empty** (so a fresh production deploy starts with a
+populated map — disable with `FLORA_AUTO_SEED=0`; the data and loader live in
+`app/sample_data.py`, reused by the `seed.py` CLI), mounts CORS, includes the two
+routers, mounts `/uploads` (static photos), and — if `FLORA_FRONTEND_DIST` points at a
+build — mounts the frontend at `/` **last** so API routes keep precedence (this is how the Docker image serves
 everything from one origin).
 
 - `database.py` — engine + `get_db()` session dependency. `FLORA_DATABASE_URL` swaps
@@ -85,6 +88,7 @@ during text search (search is global, ignores bounds — see `refreshTrees` in `
 | `FLORA_JWT_SECRET` | dev value | JWT signing secret — set in production |
 | `FLORA_CORS_ORIGINS` | `localhost:5173,...` | Comma-separated allowed origins |
 | `FLORA_FRONTEND_DIST` | unset | Path to frontend build for same-origin serving (set in Docker image) |
+| `FLORA_AUTO_SEED` | `1` | Auto-load sample plants at startup when the `trees` table is empty; set to `0`/`false` to disable |
 
 ## Deployment
 
