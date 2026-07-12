@@ -252,7 +252,7 @@ export function BrandMark({ size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path
-        d="M20 4 C 8.8 4 3.8 9.6 3.8 19.4 C 3.8 20 4.3 20.4 4.9 20.1 C 13.4 15.9 18.8 11 20.2 4.6 C 20.3 4.2 20 4 20 4 Z"
+        d="M20 4 C 8.8 4 3.8 9.6 3.8 19.4 C 3.8 20 4.3 20.4 4.9 20.1 C 14.4 20.2 20 15.2 20.2 4.6 C 20.3 4.2 20 4 20 4 Z"
         fill="#ffffff"
       />
       <path
