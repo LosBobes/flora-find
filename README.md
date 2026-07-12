@@ -1,7 +1,7 @@
 # 🌳 FloraFind
 
-A community map of neighborhood plants. Register fruit trees, ornamental trees, shrubs,
-flowerbeds and vines you find around you, flag hazards like poison ivy, and search for
+A community map of neighborhood plants. Register fruit trees, ornamental trees, evergreens,
+shrubs, flowerbeds and vines you find around you, flag hazards like poison ivy, and search for
 fruit (or flowers) near you — built on [MapLibre GL](https://maplibre.org/) and
 [OpenStreetMap](https://www.openstreetmap.org/), fully open source with no map API key required.
 
@@ -13,7 +13,7 @@ fruit (or flowers) near you — built on [MapLibre GL](https://maplibre.org/) an
 
 - Interactive OpenStreetMap map (MapLibre GL) with emoji plant markers and popups — no API key needed
 - Register any plant by clicking its exact spot on the map (name, type, species, season, notes)
-- Plant categories: fruit trees, general trees, shrubs/bushes, flowerbeds, vines and more
+- Plant categories: fruit trees, general (deciduous) trees, evergreens/conifers, shrubs/bushes, flowerbeds, vines and more
 - ☠️ Hazard flag for poisonous or dangerous plants (poison ivy, giant hogweed…) with
   red warning markers and a prominent banner — filterable via `?hazard=true|false`
 - Attach up to 3 photos per plant — thumbnails show in the info window

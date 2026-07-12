@@ -51,6 +51,9 @@ NAMES_SR = {
     "poplar": "Topola",
     "beech": "Bukva",
     "cedar": "Kedar",
+    "cypress": "Čempres",
+    "yew": "Tisa",
+    "arborvitae": "Tuja",
     "magnolia": "Magnolija",
     "lilac": "Jorgovan",
     "rose": "Ruža",
@@ -100,8 +103,11 @@ BUILTIN_TYPES = {
         "Pomegranate", "Orange", "Lemon", "Olive", "Elderberry", "Rose hip",
     ],
     "tree": [
-        "Oak", "Maple", "Birch", "Linden", "Willow", "Plane", "Pine", "Spruce",
+        "Oak", "Maple", "Birch", "Linden", "Willow", "Plane",
         "Poplar", "Beech", "Magnolia",
+    ],
+    "evergreen": [
+        "Pine", "Spruce", "Fir", "Cedar", "Cypress", "Yew", "Arborvitae",
     ],
     "shrub": [
         "Lilac", "Rose", "Boxwood", "Hydrangea", "Juniper", "Forsythia",

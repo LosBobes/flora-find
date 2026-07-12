@@ -31,6 +31,16 @@ function CategoryGlyph({ category }) {
           <circle cx="16.2" cy="10.6" r="3.4" />
         </>
       )
+    case 'evergreen':
+      // Pointed conifer: a trunk under three stacked triangular tiers.
+      return (
+        <>
+          <rect x="11" y="17.4" width="2" height="3" rx="0.7" />
+          <path d="M12 3 L16.6 9 H7.4 Z" />
+          <path d="M12 7 L17.6 13 H6.4 Z" />
+          <path d="M12 11 L18.6 17.6 H5.4 Z" />
+        </>
+      )
     case 'shrub':
       // Low, wide multi-mound bush.
       return (

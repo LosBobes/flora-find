@@ -6,6 +6,7 @@ export const HAZARD_COLOR = '#c62828'
 export const PLANT_CATEGORIES = [
   { value: 'fruit_tree', labelKey: 'cat_fruit_tree', color: '#d1495b' },
   { value: 'tree', labelKey: 'cat_tree', color: '#2e7d32' },
+  { value: 'evergreen', labelKey: 'cat_evergreen', color: '#0f6b5c' },
   { value: 'shrub', labelKey: 'cat_shrub', color: '#6a994e' },
   { value: 'flowerbed', labelKey: 'cat_flowerbed', color: '#9b5de5' },
   { value: 'vine', labelKey: 'cat_vine', color: '#1b9e77' },
@@ -101,7 +102,8 @@ export const COMMON_FRUITS = [
 
 export const TYPE_SUGGESTIONS = {
   fruit_tree: COMMON_FRUITS,
-  tree: ['Oak', 'Maple', 'Birch', 'Linden', 'Willow', 'Plane', 'Pine', 'Spruce', 'Poplar', 'Beech', 'Magnolia'],
+  tree: ['Oak', 'Maple', 'Birch', 'Linden', 'Willow', 'Plane', 'Poplar', 'Beech', 'Magnolia'],
+  evergreen: ['Pine', 'Spruce', 'Fir', 'Cedar', 'Cypress', 'Yew', 'Arborvitae'],
   shrub: ['Lilac', 'Rose', 'Boxwood', 'Hydrangea', 'Juniper', 'Forsythia', 'Hawthorn', 'Blackberry'],
   flowerbed: ['Tulips', 'Roses', 'Lavender', 'Sunflowers', 'Daffodils', 'Peonies', 'Wildflowers'],
   vine: ['Ivy', 'Wisteria', 'Grape', 'Climbing rose', 'Virginia creeper'],

@@ -30,6 +30,15 @@ def test_cherry_laurel_is_not_mislabelled_as_edible_plum():
     assert info.fruit_type == "Cherry laurel"
 
 
+def test_conifers_classify_as_evergreen():
+    # Conifers/needled trees get their own evergreen category, distinct from
+    # the deciduous "tree" bucket.
+    assert classify(genus="Pinus").category == "evergreen"
+    assert classify(species="Picea abies").category == "evergreen"
+    assert classify(genus="Cedrus").fruit_type == "Cedar"
+    assert classify(genus="Cupressus").category == "evergreen"
+
+
 def test_species_derived_from_binomial_when_no_genus_tag():
     info = classify(species="Morus alba")
     assert info.category == "fruit_tree"

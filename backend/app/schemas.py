@@ -32,7 +32,7 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
-PlantCategory = Literal["fruit_tree", "tree", "shrub", "flowerbed", "vine", "other"]
+PlantCategory = Literal["fruit_tree", "tree", "evergreen", "shrub", "flowerbed", "vine", "other"]
 
 
 class PlantTypeCreate(BaseModel):

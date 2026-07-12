@@ -11,7 +11,7 @@ source has to give us, in priority order:
 | Field | Required | Notes |
 | --- | --- | --- |
 | `lat`, `lng` | yes | Point coordinates. Everything below has these. |
-| `category` | yes | One of `PLANT_CATEGORIES`: `fruit_tree`, `tree`, `shrub`, `flowerbed`, `vine`, `other`. We derive this from species/genus. |
+| `category` | yes | One of `PLANT_CATEGORIES`: `fruit_tree`, `tree`, `evergreen`, `shrub`, `flowerbed`, `vine`, `other`. We derive this from species/genus. |
 | `fruit_type` | yes | Generic English type label ("Cherry", "Oak", "Mulberry"). Derived from species. |
 | `species` | no but wanted | Latin binomial. Most tree inventories and biodiversity sources give this. |
 | `name` | yes | Human title. Usually synthesized ("Mulberry near <street>") since raw datasets have no title. |

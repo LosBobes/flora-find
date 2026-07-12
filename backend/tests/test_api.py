@@ -187,17 +187,21 @@ def test_create_non_fruit_plants_and_filter_by_category():
     token = register()["access_token"]
     make_tree(token)
     make_tree(token, name="Big oak", category="tree", fruit_type="Oak")
+    make_tree(token, name="Corner pine", category="evergreen", fruit_type="Pine")
     make_tree(token, name="Tulip bed", category="flowerbed", fruit_type="Tulips")
     make_tree(token, name="Lilac hedge", category="shrub", fruit_type="Lilac")
 
     resp = client.get("/api/trees", params={"category": "flowerbed"})
     assert [t["name"] for t in resp.json()] == ["Tulip bed"]
 
+    resp = client.get("/api/trees", params={"category": "evergreen"})
+    assert [t["name"] for t in resp.json()] == ["Corner pine"]
+
     resp = client.get("/api/trees", params={"category": "fruit_tree"})
     assert [t["name"] for t in resp.json()] == ["Old cherry by the school"]
 
     resp = client.get("/api/trees")
-    assert len(resp.json()) == 4
+    assert len(resp.json()) == 5
 
 
 def test_invalid_category_rejected():
