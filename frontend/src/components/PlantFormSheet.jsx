@@ -73,11 +73,11 @@ export default function PlantFormSheet({ title, onClose, children }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 16 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-[#12241a] md:absolute md:inset-auto md:right-3 md:top-3 md:z-40 md:max-h-[68vh] md:w-[360px] md:overflow-hidden md:rounded-2xl md:border md:border-forest-100 md:shadow-card md:dark:border-white/10"
+      className="sd-form-sheet fixed inset-0 z-50 flex flex-col bg-white dark:bg-[#12241a] md:absolute md:inset-auto md:right-3 md:top-3 md:z-40 md:max-h-[68vh] md:w-[360px] md:overflow-hidden md:rounded-2xl md:border md:border-forest-100 md:shadow-card md:dark:border-white/10"
     >
       {/* Mobile-only header: a clear way out that doesn't require scrolling all
           the way down to the form's footer. */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-forest-100 px-3 py-2.5 dark:border-white/10 md:hidden">
+      <div className="sd-sheet-header flex shrink-0 items-center gap-2 border-b border-forest-100 px-3 py-2.5 dark:border-white/10 md:hidden">
         <button
           type="button"
           onClick={onClose}
