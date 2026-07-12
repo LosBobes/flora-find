@@ -8,6 +8,7 @@ import ExportPanel from './components/ExportPanel'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
+import PlantFormSheet from './components/PlantFormSheet'
 import ProfilePanel from './components/ProfilePanel'
 import AreaDetails from './components/AreaDetails'
 import TopNav from './components/TopNav'
@@ -716,24 +717,35 @@ export default function App() {
           </div>
 
           <AnimatePresence>
+            {/* The add/edit plant form gets its own full-viewport sheet on mobile
+                (a standalone scroll surface — no map or bottom bar behind it to
+                catch a stray swipe); on desktop it stays a floating card. */}
             {addMode && draftPosition && (
-              <FloatingPanel key="add-form">
+              <PlantFormSheet
+                key="add-form"
+                title={t('registerPlant')}
+                onClose={() => setDraftPosition(null)}
+              >
                 <TreeForm
                   position={draftPosition}
                   onSubmit={handleCreate}
                   onCancel={() => setDraftPosition(null)}
                 />
-              </FloatingPanel>
+              </PlantFormSheet>
             )}
             {editingTree && (
-              <FloatingPanel key="edit-form">
+              <PlantFormSheet
+                key="edit-form"
+                title={t('editPlant')}
+                onClose={() => setEditingTree(null)}
+              >
                 <TreeForm
                   position={{ lat: editingTree.lat, lng: editingTree.lng }}
                   initial={editingTree}
                   onSubmit={handleUpdate}
                   onCancel={() => setEditingTree(null)}
                 />
-              </FloatingPanel>
+              </PlantFormSheet>
             )}
             {exportArea && (
               <FloatingPanel key="export-panel">
