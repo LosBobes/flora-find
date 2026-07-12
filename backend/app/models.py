@@ -96,6 +96,54 @@ class Tree(Base):
         return self.gone_reports >= GONE_FLAG_THRESHOLD
 
 
+class Area(Base):
+    """A drawn region where a kind of plant grows in bulk — an orchard, a stand
+    of the same tree, a patch of wildflowers. Same descriptive fields as a
+    ``Tree`` but anchored to a polygon instead of a single point.
+
+    ``polygon`` is the outer ring as a JSON list of ``[lng, lat]`` pairs (GeoJSON
+    coordinate order, not closed — the first point is not repeated at the end).
+    ``center_lat``/``center_lng`` cache the ring's centroid so the map can place
+    a label/popup and filter by viewport without re-parsing the polygon.
+    """
+
+    __tablename__ = "areas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    category: Mapped[str] = mapped_column(
+        String(20), default="fruit_tree", server_default="fruit_tree", index=True
+    )
+    fruit_type: Mapped[str] = mapped_column(String(80), index=True)
+    hazard: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", index=True)
+    species: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    season_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    season_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Outer ring as [[lng, lat], ...] (GeoJSON order, unclosed).
+    polygon: Mapped[list] = mapped_column(JSON)
+    center_lat: Mapped[float] = mapped_column(Float, index=True)
+    center_lng: Mapped[float] = mapped_column(Float, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    owner: Mapped[User] = relationship()
+
+    @property
+    def in_season(self) -> bool:
+        return month_in_season(utcnow().month, self.season_start, self.season_end)
+
+
+def polygon_centroid(polygon: list) -> tuple[float, float]:
+    """Average of a ring's vertices, as ``(center_lat, center_lng)``. Good enough
+    to anchor a label/popup and to filter by viewport; not an area-weighted
+    centroid. ``polygon`` is ``[[lng, lat], ...]``."""
+    count = len(polygon)
+    lng = sum(point[0] for point in polygon) / count
+    lat = sum(point[1] for point in polygon) / count
+    return lat, lng
+
+
 class PlantType(Base):
     """The controlled vocabulary of plant/fruit types a plant can be tagged with.
 

@@ -85,6 +85,19 @@ export const api = {
   updateTree: (id, tree) => request(`/api/trees/${id}`, { method: 'PUT', body: tree, auth: true }),
   deleteTree: (id) => request(`/api/trees/${id}`, { method: 'DELETE', auth: true }),
 
+  // Drawn plant areas (polygons). Listing is public; create/update/delete need auth.
+  listAreas: (params = {}) => {
+    const qs = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '') qs.set(key, value)
+    }
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/api/areas${suffix}`)
+  },
+  createArea: (area) => request('/api/areas', { method: 'POST', body: area, auth: true }),
+  updateArea: (id, area) => request(`/api/areas/${id}`, { method: 'PUT', body: area, auth: true }),
+  deleteArea: (id) => request(`/api/areas/${id}`, { method: 'DELETE', auth: true }),
+
   confirmTree: (treeId, status) =>
     request(`/api/trees/${treeId}/confirmations`, {
       method: 'POST',

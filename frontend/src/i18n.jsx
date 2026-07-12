@@ -148,6 +148,27 @@ const STRINGS = {
     exportedNotice: ({ count, format }) => `Exported ${count} plant${count === 1 ? '' : 's'} as ${format}`,
     adminsOnly: 'Admins only. Export is not available.',
 
+    // Areas
+    drawArea: 'Draw area',
+    cancelArea: 'Cancel drawing',
+    drawAreaNotice: 'Click on the map to outline an area. Add at least 3 points, then Finish.',
+    drawAreaProgress: ({ count }) => `${count} point${count === 1 ? '' : 's'}`,
+    undoPoint: 'Undo point',
+    finishArea: 'Finish',
+    nameArea: 'Name this area',
+    editArea: 'Edit area',
+    areaFormHint: 'Describe what grows across this area 🌿',
+    areaBadge: 'Area',
+    areaSavedNotice: ({ name }) => `Saved area “${name}”`,
+    areaUpdated: 'Area updated',
+    areaDeleted: 'Area deleted',
+
+    // Layers
+    layers: 'Layers',
+    layerAll: 'All',
+    layerPlants: 'Plants',
+    layerAreas: 'Areas',
+
     // Notices
     registeredNotice: ({ name }) => `Registered “${name}”`,
     photoUploadFailed: ({ message }) => `Plant saved, but photo upload failed: ${message}`,
@@ -305,6 +326,27 @@ const STRINGS = {
     download: 'Preuzmi',
     exportedNotice: ({ count, format }) => `Izvezeno ${count} ${srPlural(count, 'biljka', 'biljke', 'biljaka')} kao ${format}`,
     adminsOnly: 'Samo za administratore. Izvoz nije dostupan.',
+
+    // Areas
+    drawArea: 'Nacrtaj oblast',
+    cancelArea: 'Otkaži crtanje',
+    drawAreaNotice: 'Klikni na mapu da ocrtaš oblast. Dodaj bar 3 tačke, pa Završi.',
+    drawAreaProgress: ({ count }) => `${count} ${srPlural(count, 'tačka', 'tačke', 'tačaka')}`,
+    undoPoint: 'Poništi tačku',
+    finishArea: 'Završi',
+    nameArea: 'Imenuj oblast',
+    editArea: 'Izmeni oblast',
+    areaFormHint: 'Opiši šta raste na ovoj oblasti 🌿',
+    areaBadge: 'Oblast',
+    areaSavedNotice: ({ name }) => `Sačuvana oblast „${name}“`,
+    areaUpdated: 'Oblast je ažurirana',
+    areaDeleted: 'Oblast je obrisana',
+
+    // Layers
+    layers: 'Slojevi',
+    layerAll: 'Sve',
+    layerPlants: 'Biljke',
+    layerAreas: 'Oblasti',
 
     // Notices
     registeredNotice: ({ name }) => `Dodato „${name}“`,

@@ -8,6 +8,7 @@ import ExportPanel from './components/ExportPanel'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
+import AreaDetails from './components/AreaDetails'
 import TopNav from './components/TopNav'
 import PlantList from './components/PlantList'
 import MapSettingsControl from './components/MapSettingsControl'
@@ -46,23 +47,33 @@ export default function App() {
   const { t, name: plantName } = useI18n()
 
   const [trees, setTrees] = useState([])
+  const [areas, setAreas] = useState([])
   const [fruitTypes, setFruitTypes] = useState([])
   const [searchText, setSearchText] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [fruitFilter, setFruitFilter] = useState('')
   const [ripeNow, setRipeNow] = useState(false)
+  const [layerView, setLayerView] = useState('all') // 'all' | 'plants' | 'areas'
   const [nearMe, setNearMe] = useState(null) // {lat, lng} | null
   const [locating, setLocating] = useState(false)
   const [selectedTree, setSelectedTree] = useState(null)
+  const [selectedArea, setSelectedArea] = useState(null)
   const [panTarget, setPanTarget] = useState(null)
 
   const [authModal, setAuthModal] = useState(null) // 'login' | 'register' | null
   const [addMode, setAddMode] = useState(false)
   const [draftPosition, setDraftPosition] = useState(null)
   const [editingTree, setEditingTree] = useState(null)
+  const [editingArea, setEditingArea] = useState(null)
   const [notice, setNotice] = useState(null)
   const [selectingArea, setSelectingArea] = useState(false)
   const [exportArea, setExportArea] = useState(null)
+  const [drawingArea, setDrawingArea] = useState(false)
+  const [draftPolygon, setDraftPolygon] = useState([]) // [{lat, lng}]
+  const [areaFormOpen, setAreaFormOpen] = useState(false)
+
+  const showPlants = layerView !== 'areas'
+  const showAreas = layerView !== 'plants'
 
   const boundsRef = useRef(null)
   const debounceRef = useRef(null)
@@ -92,27 +103,66 @@ export default function App() {
     }
   }, [searchText, categoryFilter, fruitFilter, ripeNow, nearMe])
 
+  const refreshAreas = useCallback(async () => {
+    const params = {
+      q: searchText || undefined,
+      category: categoryFilter || undefined,
+      fruit_type: fruitFilter || undefined,
+      ripe_now: ripeNow || undefined,
+    }
+    const bounds = boundsRef.current
+    // Areas have no radius search; follow the viewport like trees do, except
+    // during a text search (which is global) or a near-me lookup.
+    if (!nearMe && bounds && !searchText) {
+      params.min_lat = bounds.south
+      params.max_lat = bounds.north
+      params.min_lng = bounds.west
+      params.max_lng = bounds.east
+    }
+    try {
+      setAreas(await api.listAreas(params))
+    } catch (err) {
+      console.error('Failed to load areas', err)
+    }
+  }, [searchText, categoryFilter, fruitFilter, ripeNow, nearMe])
+
   useEffect(() => {
     refreshTrees()
-  }, [refreshTrees])
+    refreshAreas()
+  }, [refreshTrees, refreshAreas])
 
   useEffect(() => {
     api.fruitTypes(categoryFilter || undefined).then(setFruitTypes).catch(() => {})
     setFruitFilter('')
   }, [categoryFilter])
 
+  // Drop a selection when its layer is hidden so no stray popup lingers.
+  useEffect(() => {
+    if (!showPlants) setSelectedTree(null)
+    if (!showAreas) setSelectedArea(null)
+  }, [showPlants, showAreas])
+
   const handleBoundsChanged = useCallback(
     (bounds) => {
       boundsRef.current = bounds
       clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(refreshTrees, 400)
+      debounceRef.current = setTimeout(() => {
+        refreshTrees()
+        refreshAreas()
+      }, 400)
     },
-    [refreshTrees],
+    [refreshTrees, refreshAreas],
   )
 
   function showNotice(message) {
     setNotice(message)
     setTimeout(() => setNotice(null), 4000)
+  }
+
+  function cancelDrawArea() {
+    setDrawingArea(false)
+    setDraftPolygon([])
+    setAreaFormOpen(false)
   }
 
   function startAddMode() {
@@ -121,9 +171,12 @@ export default function App() {
       return
     }
     setSelectingArea(false)
+    cancelDrawArea()
     setAddMode(true)
     setSelectedTree(null)
+    setSelectedArea(null)
     setEditingTree(null)
+    setEditingArea(null)
     setDraftPosition(null)
   }
 
@@ -143,6 +196,7 @@ export default function App() {
     }
     setAddMode(false)
     setDraftPosition(null)
+    cancelDrawArea()
     setExportArea(null)
     setSelectingArea(true)
     showNotice(t('dragToSelectNotice'))
@@ -153,11 +207,63 @@ export default function App() {
     setExportArea(area)
   }
 
+  function startDrawArea() {
+    if (!user) {
+      setAuthModal('login')
+      return
+    }
+    setAddMode(false)
+    setDraftPosition(null)
+    setSelectingArea(false)
+    setExportArea(null)
+    setSelectedTree(null)
+    setSelectedArea(null)
+    setEditingTree(null)
+    setEditingArea(null)
+    setDraftPolygon([])
+    setAreaFormOpen(false)
+    setDrawingArea(true)
+    showNotice(t('drawAreaNotice'))
+  }
+
+  function toggleDrawArea() {
+    if (drawingArea || areaFormOpen) {
+      cancelDrawArea()
+    } else {
+      startDrawArea()
+    }
+  }
+
+  function undoDraftPoint() {
+    setDraftPolygon((current) => current.slice(0, -1))
+  }
+
+  function finishDrawArea() {
+    if (draftPolygon.length < 3) return
+    setDrawingArea(false)
+    setAreaFormOpen(true)
+  }
+
+  function selectArea(id) {
+    if (id == null) {
+      setSelectedArea(null)
+      return
+    }
+    const area = areas.find((entry) => entry.id === id)
+    if (area) {
+      setSelectedArea(area)
+      setSelectedTree(null)
+    }
+  }
+
   function handleMapClick(latLng) {
-    if (addMode) {
+    if (drawingArea) {
+      setDraftPolygon((current) => [...current, latLng])
+    } else if (addMode) {
       setDraftPosition(latLng)
     } else {
       setSelectedTree(null)
+      setSelectedArea(null)
     }
   }
 
@@ -194,6 +300,36 @@ export default function App() {
       setSelectedTree(null)
       showNotice(t('plantDeleted'))
       refreshTrees()
+    } catch (err) {
+      showNotice(err.message)
+    }
+  }
+
+  async function handleCreateArea(payload) {
+    const created = await api.createArea(payload)
+    setAreaFormOpen(false)
+    setDraftPolygon([])
+    setSelectedTree(null)
+    setSelectedArea(created)
+    showNotice(t('areaSavedNotice', { name: created.name }))
+    refreshAreas()
+  }
+
+  async function handleUpdateArea(payload) {
+    const updated = await api.updateArea(editingArea.id, payload)
+    setEditingArea(null)
+    setSelectedArea(updated)
+    showNotice(t('areaUpdated'))
+    refreshAreas()
+  }
+
+  async function handleDeleteArea() {
+    if (!window.confirm(t('confirmDelete', { name: plantName(selectedArea.name) }))) return
+    try {
+      await api.deleteArea(selectedArea.id)
+      setSelectedArea(null)
+      showNotice(t('areaDeleted'))
+      refreshAreas()
     } catch (err) {
       showNotice(err.message)
     }
@@ -260,7 +396,12 @@ export default function App() {
     fruitTypes,
     ripeNow,
     setRipeNow,
+    layerView,
+    setLayerView,
   }
+
+  const visibleTrees = showPlants ? trees : []
+  const visibleAreas = showAreas ? areas : []
 
   return (
     <div className="flex h-full flex-col bg-forest-50 dark:bg-[#0e1f14]">
@@ -304,6 +445,18 @@ export default function App() {
           >
             {locating ? t('locating') : nearMe ? `× ${t('leaveNearMe')}` : t('nearMe')}
           </button>
+          <button
+            type="button"
+            onClick={toggleDrawArea}
+            className={cn(
+              'w-full rounded-full border px-4 py-2 text-sm font-semibold transition',
+              drawingArea || areaFormOpen
+                ? 'border-forest-600 bg-forest-600 text-white shadow-glow'
+                : 'border-forest-200 bg-white text-forest-700 hover:bg-forest-50 dark:border-white/15 dark:bg-white/5 dark:text-forest-100 dark:hover:bg-white/10',
+            )}
+          >
+            {drawingArea || areaFormOpen ? `× ${t('cancelArea')}` : t('drawArea')}
+          </button>
           {user?.is_admin && (
             <button
               type="button"
@@ -322,7 +475,7 @@ export default function App() {
             <p className="rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-700">{t('dragToSelect')}</p>
           )}
           <PlantList
-            trees={trees}
+            trees={visibleTrees}
             selectedTree={selectedTree}
             onSelect={selectFromList}
             countSuffix={countSuffix}
@@ -332,11 +485,12 @@ export default function App() {
         {/* Map */}
         <main className="relative min-w-0 flex-1">
           <MapView
-            trees={trees}
+            trees={visibleTrees}
             selectedTree={selectedTree}
-            onSelectTree={(tree) =>
+            onSelectTree={(tree) => {
+              setSelectedArea(null)
               setSelectedTree((cur) => (tree && cur?.id === tree.id ? null : tree))
-            }
+            }}
             addMode={addMode}
             draftPosition={draftPosition}
             onMapClick={handleMapClick}
@@ -346,6 +500,24 @@ export default function App() {
             selectingArea={selectingArea}
             onAreaSelected={handleAreaSelected}
             onAreaCancel={() => setSelectingArea(false)}
+            areas={visibleAreas}
+            selectedArea={selectedArea}
+            onSelectArea={selectArea}
+            drawingArea={drawingArea}
+            draftPolygon={draftPolygon}
+            areaDetails={
+              selectedArea && (
+                <AreaDetails
+                  area={selectedArea}
+                  currentUser={user}
+                  onEdit={() => {
+                    setSelectedArea(null)
+                    setEditingArea(selectedArea)
+                  }}
+                  onDelete={handleDeleteArea}
+                />
+              )
+            }
           >
             {selectedTree && (
               <TreeDetails
@@ -357,6 +529,46 @@ export default function App() {
               />
             )}
           </MapView>
+
+          {/* Drawing toolbar while placing an area's vertices. */}
+          <AnimatePresence>
+            {drawingArea && (
+              <motion.div
+                key="draw-toolbar"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                className="absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
+              >
+                <span className="px-1 text-xs font-medium text-forest-700 dark:text-forest-100">
+                  {t('drawAreaProgress', { count: draftPolygon.length })}
+                </span>
+                <button
+                  type="button"
+                  onClick={undoDraftPoint}
+                  disabled={draftPolygon.length === 0}
+                  className="rounded-full border border-forest-200 bg-white px-3 py-1 text-xs font-semibold text-forest-700 transition hover:bg-forest-50 disabled:opacity-40 dark:border-white/15 dark:bg-white/5 dark:text-forest-100"
+                >
+                  {t('undoPoint')}
+                </button>
+                <button
+                  type="button"
+                  onClick={finishDrawArea}
+                  disabled={draftPolygon.length < 3}
+                  className="rounded-full bg-forest-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-forest-700 disabled:opacity-40"
+                >
+                  {t('finishArea')}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelDrawArea}
+                  className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+                >
+                  {t('cancel')}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Desktop map appearance control */}
           <div className="absolute right-3 top-3 z-20 hidden md:block">
@@ -388,6 +600,27 @@ export default function App() {
                 <ExportPanel area={exportArea} onClose={() => setExportArea(null)} onNotice={showNotice} />
               </FloatingPanel>
             )}
+            {areaFormOpen && (
+              <FloatingPanel key="area-form">
+                <TreeForm
+                  variant="area"
+                  polygon={draftPolygon.map((point) => [point.lng, point.lat])}
+                  onSubmit={handleCreateArea}
+                  onCancel={cancelDrawArea}
+                />
+              </FloatingPanel>
+            )}
+            {editingArea && (
+              <FloatingPanel key="area-edit-form">
+                <TreeForm
+                  variant="area"
+                  initial={editingArea}
+                  polygon={editingArea.polygon}
+                  onSubmit={handleUpdateArea}
+                  onCancel={() => setEditingArea(null)}
+                />
+              </FloatingPanel>
+            )}
           </AnimatePresence>
 
           <AnimatePresence>
@@ -408,7 +641,7 @@ export default function App() {
 
       {/* Mobile: one melded bar — search + nav + the pull-up plant list. */}
       <MobileBottomBar
-        trees={trees}
+        trees={visibleTrees}
         selectedTree={selectedTree}
         onSelectTree={selectFromList}
         countSuffix={countSuffix}
@@ -423,6 +656,8 @@ export default function App() {
         isAdmin={!!user?.is_admin}
         selectingArea={selectingArea}
         onToggleExport={toggleSelectArea}
+        drawingArea={drawingArea || areaFormOpen}
+        onToggleDraw={toggleDrawArea}
         filterProps={filterProps}
       />
 

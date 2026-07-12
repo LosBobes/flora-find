@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Map, Marker, Popup, useMap } from '@vis.gl/react-maplibre'
+import { Map, Layer, Marker, Popup, Source, useMap } from '@vis.gl/react-maplibre'
 import { AnimatePresence, motion } from 'motion/react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { PlantIcon } from '../icons'
+import { plantColor } from '../fruitIcons'
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { buildBasemapStyle, useMapSettings } from '../MapSettingsContext'
 import { cn } from '../lib/utils'
+
+const DRAFT_COLOR = '#2e7d32'
+
+// A GeoJSON Polygon needs its outer ring closed (first point repeated at the
+// end); areas are stored unclosed, so close them here for rendering.
+function closedRing(polygon) {
+  if (!polygon?.length) return []
+  const first = polygon[0]
+  const last = polygon[polygon.length - 1]
+  return first[0] === last[0] && first[1] === last[1] ? polygon : [...polygon, first]
+}
 
 const DEFAULT_CENTER = { lat: 44.8125, lng: 20.4612 }
 const DEFAULT_ZOOM = 13
@@ -215,12 +227,61 @@ export default function MapView({
   selectingArea = false,
   onAreaSelected,
   onAreaCancel,
+  areas = [],
+  selectedArea,
+  onSelectArea,
+  drawingArea = false,
+  draftPolygon = [],
+  areaDetails,
   children,
 }) {
   const { name: plantName } = useI18n()
   const { localized: localizedType } = usePlantTypes()
   const { theme, markerPx, showLabels, isDark } = useMapSettings()
   const mapStyle = useMemo(() => buildBasemapStyle(theme), [theme])
+
+  // Saved areas as a filled/outlined polygon layer. Each feature carries its
+  // colour and whether it's the selected one so the paint expressions can react
+  // without extra layers. Rebuilt when the set or the selection changes.
+  const selectedAreaId = selectedArea?.id ?? null
+  const areaCollection = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: areas
+        .filter((area) => area.polygon?.length >= 3)
+        .map((area) => ({
+          type: 'Feature',
+          properties: {
+            id: area.id,
+            color: plantColor(area),
+            selected: area.id === selectedAreaId ? 1 : 0,
+          },
+          geometry: { type: 'Polygon', coordinates: [closedRing(area.polygon)] },
+        })),
+    }),
+    [areas, selectedAreaId],
+  )
+
+  // The polygon being drawn: filled once it has 3+ points, otherwise just the
+  // path so far. Vertices are drawn as markers below.
+  const draftCollection = useMemo(() => {
+    const ring = draftPolygon.map((point) => [point.lng, point.lat])
+    const features = []
+    if (ring.length >= 3) {
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Polygon', coordinates: [[...ring, ring[0]]] },
+      })
+    } else if (ring.length >= 2) {
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: ring },
+      })
+    }
+    return { type: 'FeatureCollection', features }
+  }, [draftPolygon])
 
   // Keep the popup mounted through its exit animation: `shownTree` lingers after
   // `selectedTree` clears until AnimatePresence reports the card has left.
@@ -250,6 +311,25 @@ export default function MapView({
     reportBounds(event)
   }, [reportBounds])
 
+  const handleClick = useCallback(
+    (event) => {
+      const latLng = { lat: event.lngLat.lat, lng: event.lngLat.lng }
+      // While drawing or placing a plant, every click is a coordinate; don't let
+      // an area fill under the cursor swallow it.
+      if (drawingArea || addMode) {
+        onMapClick(latLng)
+        return
+      }
+      const areaHit = event.features?.find((feature) => feature.layer?.id === 'area-fill')
+      if (areaHit && onSelectArea) {
+        onSelectArea(Number(areaHit.properties.id))
+        return
+      }
+      onMapClick(latLng)
+    },
+    [drawingArea, addMode, onMapClick, onSelectArea],
+  )
+
   return (
     <Map
       mapStyle={mapStyle}
@@ -261,17 +341,77 @@ export default function MapView({
         pitch: 0,
       }}
       style={{ width: '100%', height: '100%' }}
-      cursor={addMode || selectingArea ? 'crosshair' : 'grab'}
+      cursor={addMode || selectingArea || drawingArea ? 'crosshair' : 'grab'}
       dragRotate={false}
       pitchWithRotate={false}
       touchPitch={false}
-      onClick={(event) => onMapClick({ lat: event.lngLat.lat, lng: event.lngLat.lng })}
+      interactiveLayerIds={['area-fill']}
+      onClick={handleClick}
       onLoad={handleLoad}
       onMoveEnd={reportBounds}
     >
       <PanToSelected tree={selectedTree} />
       <PanTo target={panTarget} />
       <BoxSelect active={selectingArea} onComplete={onAreaSelected} onCancel={onAreaCancel} />
+
+      {/* Saved plant areas: fill + outline, brighter when selected. */}
+      <Source id="areas" type="geojson" data={areaCollection}>
+        <Layer
+          id="area-fill"
+          type="fill"
+          paint={{
+            'fill-color': ['get', 'color'],
+            'fill-opacity': ['case', ['==', ['get', 'selected'], 1], 0.4, 0.16],
+          }}
+        />
+        <Layer
+          id="area-outline"
+          type="line"
+          paint={{
+            'line-color': ['get', 'color'],
+            'line-width': ['case', ['==', ['get', 'selected'], 1], 3, 1.5],
+          }}
+        />
+      </Source>
+
+      {/* The area currently being drawn. */}
+      {drawingArea && (
+        <Source id="draft-area" type="geojson" data={draftCollection}>
+          <Layer id="draft-fill" type="fill" paint={{ 'fill-color': DRAFT_COLOR, 'fill-opacity': 0.2 }} />
+          <Layer
+            id="draft-line"
+            type="line"
+            paint={{ 'line-color': DRAFT_COLOR, 'line-width': 2, 'line-dasharray': [2, 1] }}
+          />
+        </Source>
+      )}
+
+      {drawingArea &&
+        draftPolygon.map((point, index) => (
+          <Marker key={index} longitude={point.lng} latitude={point.lat} style={{ zIndex: 5 }}>
+            <span
+              className={cn(
+                'block rounded-full border-2 border-white shadow',
+                index === 0 ? 'size-3.5' : 'size-2.5',
+              )}
+              style={{ backgroundColor: DRAFT_COLOR }}
+            />
+          </Marker>
+        ))}
+
+      {selectedArea && areaDetails && (
+        <Popup
+          longitude={selectedArea.center_lng}
+          latitude={selectedArea.center_lat}
+          anchor="bottom"
+          offset={12}
+          maxWidth="300px"
+          closeOnClick={false}
+          onClose={() => onSelectArea && onSelectArea(null)}
+        >
+          {areaDetails}
+        </Popup>
+      )}
 
       {trees.map((tree) => {
         const selected = selectedTree?.id === tree.id

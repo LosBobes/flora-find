@@ -25,7 +25,8 @@ const CATEGORY_EMOJI = {
 
 const emptyNames = () => Object.fromEntries(LANGUAGES.map((entry) => [entry.code, '']))
 
-export default function TreeForm({ position, initial, onSubmit, onCancel }) {
+export default function TreeForm({ position, initial, onSubmit, onCancel, variant = 'plant', polygon }) {
+  const isArea = variant === 'area'
   const { t, lang, months } = useI18n()
   const { user } = useAuth()
   const { byCategory, addType } = usePlantTypes()
@@ -112,22 +113,21 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
       return
     }
     setBusy(true)
+    const common = {
+      name,
+      category,
+      fruit_type: fruitType,
+      hazard,
+      species: species || null,
+      season_start: seasonStart ? Number(seasonStart) : null,
+      season_end: seasonEnd ? Number(seasonEnd) : null,
+      description: description || null,
+    }
+    const payload = isArea
+      ? { ...common, polygon }
+      : { ...common, lat: position.lat, lng: position.lng }
     try {
-      await onSubmit(
-        {
-          name,
-          category,
-          fruit_type: fruitType,
-          hazard,
-          species: species || null,
-          season_start: seasonStart ? Number(seasonStart) : null,
-          season_end: seasonEnd ? Number(seasonEnd) : null,
-          description: description || null,
-          lat: position.lat,
-          lng: position.lng,
-        },
-        photos,
-      )
+      await onSubmit(payload, photos)
     } catch (err) {
       setError(err.message)
       setBusy(false)
@@ -138,9 +138,11 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
     <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
       <div>
         <h3 className="text-lg font-bold text-forest-800 dark:text-forest-50">
-          {initial ? t('editPlant') : t('registerPlant')}
+          {isArea ? (initial ? t('editArea') : t('nameArea')) : initial ? t('editPlant') : t('registerPlant')}
         </h3>
-        <p className="text-xs text-forest-500 dark:text-forest-300">{t('formTapHint')}</p>
+        <p className="text-xs text-forest-500 dark:text-forest-300">
+          {isArea ? t('areaFormHint') : t('formTapHint')}
+        </p>
       </div>
 
       {/* Live preview: the real marker artwork updates as you pick a category,
@@ -319,7 +321,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel }) {
         />
       </label>
 
-      {!initial && (
+      {!initial && !isArea && (
         <label className={labelText}>
           {t('photos', { max: MAX_PHOTOS })}
           <input

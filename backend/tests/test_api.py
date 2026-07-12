@@ -776,3 +776,114 @@ def test_duplicate_plant_type_rejected():
     assert add_plant_type(token, "fruit_tree", {"en": "Cherry", "sr": "Trešnja"}).status_code == 201
     # Same canonical name, any casing, is a conflict.
     assert add_plant_type(token, "tree", {"en": "cherry", "sr": "Trešnja"}).status_code == 409
+
+
+# --- Areas -----------------------------------------------------------------
+
+SQUARE = [[20.46, 44.81], [20.47, 44.81], [20.47, 44.82], [20.46, 44.82]]
+
+
+def make_area(token, **overrides):
+    body = {
+        "name": "Riverside plum orchard",
+        "category": "fruit_tree",
+        "fruit_type": "Plum",
+        "description": "Rows of plum trees by the water.",
+        "season_start": 8,
+        "season_end": 9,
+        "polygon": SQUARE,
+    }
+    body.update(overrides)
+    ensure_plant_type(body.get("category", "fruit_tree"), body["fruit_type"])
+    resp = client.post("/api/areas", json=body, headers=auth_headers(token))
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def test_create_area_computes_centroid_and_lists():
+    token = register()["access_token"]
+    area = make_area(token)
+    assert area["polygon"] == SQUARE
+    assert area["center_lng"] == pytest.approx(20.465)
+    assert area["center_lat"] == pytest.approx(44.815)
+    assert area["owner"]["username"] == "ana"
+
+    listed = client.get("/api/areas").json()
+    assert [a["id"] for a in listed] == [area["id"]]
+
+
+def test_create_area_requires_auth_and_valid_polygon():
+    resp = client.post("/api/areas", json={"name": "x", "fruit_type": "Plum", "polygon": SQUARE})
+    assert resp.status_code == 401
+
+    token = register()["access_token"]
+    ensure_plant_type("fruit_tree", "Plum")
+    resp = client.post(
+        "/api/areas",
+        json={"name": "x", "fruit_type": "Plum", "polygon": [[20.46, 44.81], [20.47, 44.81]]},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 422
+
+
+def test_area_rejects_unknown_plant_type():
+    token = register()["access_token"]
+    resp = client.post(
+        "/api/areas",
+        json={"name": "x", "fruit_type": "Dragonfruit", "polygon": SQUARE},
+        headers=auth_headers(token),
+    )
+    assert resp.status_code == 400
+
+
+def test_area_bbox_filter_uses_centroid():
+    token = register()["access_token"]
+    make_area(token)
+    # Centroid (44.815, 20.465) is inside this box...
+    inside = client.get(
+        "/api/areas", params={"min_lat": 44.8, "max_lat": 44.83, "min_lng": 20.4, "max_lng": 20.5}
+    ).json()
+    assert len(inside) == 1
+    # ...and outside this one.
+    outside = client.get(
+        "/api/areas", params={"min_lat": 45.0, "max_lat": 46.0, "min_lng": 20.4, "max_lng": 20.5}
+    ).json()
+    assert outside == []
+
+
+def test_area_ripe_now_filter():
+    token = register()["access_token"]
+    make_area(token, season_start=month_offset(0), season_end=month_offset(0))
+    make_area(token, name="Winter patch", season_start=month_offset(4), season_end=month_offset(5))
+    ripe = client.get("/api/areas", params={"ripe_now": "true"}).json()
+    assert [a["name"] for a in ripe] == ["Riverside plum orchard"]
+
+
+def test_update_area_recomputes_centroid_and_enforces_owner():
+    token = register()["access_token"]
+    area = make_area(token)
+
+    moved = [[10.0, 5.0], [10.1, 5.0], [10.1, 5.1], [10.0, 5.1]]
+    resp = client.put(
+        f"/api/areas/{area['id']}", json={"polygon": moved}, headers=auth_headers(token)
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["center_lng"] == pytest.approx(10.05)
+    assert resp.json()["center_lat"] == pytest.approx(5.05)
+
+    other = register(email="bob@example.com", username="bob")["access_token"]
+    resp = client.put(
+        f"/api/areas/{area['id']}", json={"name": "hijack"}, headers=auth_headers(other)
+    )
+    assert resp.status_code == 403
+
+
+def test_delete_area_enforces_owner():
+    token = register()["access_token"]
+    area = make_area(token)
+
+    other = register(email="bob@example.com", username="bob")["access_token"]
+    assert client.delete(f"/api/areas/{area['id']}", headers=auth_headers(other)).status_code == 403
+
+    assert client.delete(f"/api/areas/{area['id']}", headers=auth_headers(token)).status_code == 204
+    assert client.get("/api/areas").json() == []

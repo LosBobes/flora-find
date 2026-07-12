@@ -28,11 +28,19 @@ export default function Filters({
   fruitTypes,
   ripeNow,
   setRipeNow,
+  layerView = 'all',
+  setLayerView,
   variant = 'bar',
 }) {
   const { t } = useI18n()
   const { localized: localizedType } = usePlantTypes()
   const isBar = variant === 'bar'
+
+  const layerOptions = [
+    { value: 'all', label: t('layerAll') },
+    { value: 'plants', label: t('layerPlants') },
+    { value: 'areas', label: t('layerAreas') },
+  ]
 
   const categoryOptions = [
     { value: '', label: t('allCategories') },
@@ -88,6 +96,33 @@ export default function Filters({
       >
         {t('inSeason')}
       </button>
+      {/* Layer visibility: single plants, drawn areas, or everything. */}
+      <div
+        className={cn(
+          'flex shrink-0 rounded-xl border border-forest-100 bg-white p-0.5 dark:border-white/10 dark:bg-white/5',
+          isBar ? 'whitespace-nowrap' : 'w-full',
+        )}
+        role="group"
+        aria-label={t('layers')}
+      >
+        {layerOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setLayerView?.(option.value)}
+            aria-pressed={layerView === option.value}
+            className={cn(
+              'rounded-lg px-2.5 py-1.5 text-sm font-semibold transition',
+              isBar ? '' : 'flex-1',
+              layerView === option.value
+                ? 'bg-forest-600 text-white shadow-sm'
+                : 'text-forest-700 hover:bg-forest-50 dark:text-forest-100 dark:hover:bg-white/10',
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
