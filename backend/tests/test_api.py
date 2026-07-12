@@ -734,9 +734,8 @@ def test_plant_types_listed_and_filtered_by_category():
     assert [pt["names"]["en"] for pt in resp.json()] == ["Oak"]
 
 
-def test_admin_adds_type_then_it_can_be_used():
+def test_user_adds_type_then_it_can_be_used():
     token = register()["access_token"]
-    make_admin()
 
     resp = add_plant_type(token, "vine", {"en": "Kiwi", "sr": "Kivi"})
     assert resp.status_code == 201, resp.text
@@ -752,27 +751,27 @@ def test_admin_adds_type_then_it_can_be_used():
     assert resp.status_code == 201
 
 
-def test_add_plant_type_requires_admin():
+def test_add_plant_type_requires_login():
+    # Any signed-in user can extend the vocabulary...
     token = register()["access_token"]
     resp = add_plant_type(token, "vine", {"en": "Kiwi", "sr": "Kivi"})
-    assert resp.status_code == 403
+    assert resp.status_code == 201
 
+    # ...but an anonymous request is rejected.
     resp = client.post(
-        "/api/plant-types", json={"category": "vine", "names": {"en": "Kiwi", "sr": "Kivi"}}
+        "/api/plant-types", json={"category": "vine", "names": {"en": "Grape", "sr": "Grožđe"}}
     )
     assert resp.status_code == 401
 
 
 def test_add_plant_type_requires_every_language():
     token = register()["access_token"]
-    make_admin()
     resp = add_plant_type(token, "vine", {"en": "Kiwi"})
     assert resp.status_code == 422
 
 
 def test_duplicate_plant_type_rejected():
     token = register()["access_token"]
-    make_admin()
     assert add_plant_type(token, "fruit_tree", {"en": "Cherry", "sr": "Trešnja"}).status_code == 201
     # Same canonical name, any casing, is a conflict.
     assert add_plant_type(token, "tree", {"en": "cherry", "sr": "Trešnja"}).status_code == 409

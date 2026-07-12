@@ -1,7 +1,7 @@
 """Serbian names for the built-in plant types, and a helper to populate the
 ``plant_types`` table from whatever ``fruit_type`` values already exist.
 
-Kept in sync with the frontend fallback dictionary. New types added by admins at
+Kept in sync with the frontend fallback dictionary. New types added by users at
 runtime come with their own translations and don't need an entry here.
 """
 
