@@ -80,7 +80,7 @@ export function Select({ value, onChange, options, placeholder, className, ariaL
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-xl border border-forest-100 bg-white px-3 py-2 text-left text-sm text-forest-900 shadow-sm outline-none transition hover:border-forest-300 focus:border-forest-400 focus:ring-2 focus:ring-forest-200',
+          'sd-select flex w-full items-center justify-between gap-2 rounded-xl border border-forest-100 bg-white px-3 py-2 text-left text-sm text-forest-900 shadow-sm outline-none transition hover:border-forest-300 focus:border-forest-400 focus:ring-2 focus:ring-forest-200',
           'dark:border-white/10 dark:bg-white/5 dark:text-forest-50 dark:hover:border-white/25',
           open && 'border-forest-400 ring-2 ring-forest-200 dark:border-forest-300',
           className,
@@ -100,7 +100,7 @@ export function Select({ value, onChange, options, placeholder, className, ariaL
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.14, ease: 'easeOut' }}
             style={{ position: 'fixed', left: rect.left, top: rect.top, width: rect.width, zIndex: 60 }}
-            className="max-h-64 overflow-y-auto rounded-xl border border-forest-100 bg-white p-1 shadow-card dark:border-white/10 dark:bg-[#16281d]"
+            className="sd-menu max-h-64 overflow-y-auto rounded-xl border border-forest-100 bg-white p-1 shadow-card dark:border-white/10 dark:bg-[#16281d]"
           >
               {options.map((opt) => {
                 const isSelected = opt.value === value

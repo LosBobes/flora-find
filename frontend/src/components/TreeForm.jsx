@@ -173,14 +173,14 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
       {/* Live preview: the real marker artwork updates as you pick a category,
           type or the hazard flag, so you see exactly how the plant will land on
           the map before saving. */}
-      <div className="relative overflow-hidden rounded-2xl border border-forest-100 bg-gradient-to-br from-forest-50 via-white to-forest-50 p-3 dark:border-white/10 dark:from-forest-500/15 dark:via-transparent dark:to-forest-500/10">
+      <div className="sd-preview relative overflow-hidden rounded-2xl border border-forest-100 bg-gradient-to-br from-forest-50 via-white to-forest-50 p-3 dark:border-white/10 dark:from-forest-500/15 dark:via-transparent dark:to-forest-500/10">
         <span className="pointer-events-none absolute -right-3 -top-3 select-none text-5xl opacity-15">
           {CATEGORY_EMOJI[category]}
         </span>
         <div className="relative flex items-center gap-3">
           <span
             key={`${category}-${fruitType}-${hazard}`}
-            className="grid size-14 shrink-0 animate-pop-in place-items-center rounded-2xl bg-white shadow-sm dark:bg-white/10"
+            className="sd-icon-slot grid size-14 shrink-0 animate-pop-in place-items-center rounded-2xl bg-white shadow-sm dark:bg-white/10"
           >
             <PlantIcon tree={previewTree} size={40} />
           </span>
@@ -211,9 +211,9 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
                 onClick={() => handleCategoryChange(entry.value)}
                 aria-pressed={active}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-2xl border px-2 py-2.5 text-center transition active:scale-95',
+                  'sd-tile flex flex-col items-center gap-1 rounded-2xl border px-2 py-2.5 text-center transition active:scale-95',
                   active
-                    ? 'border-forest-500 bg-forest-50 ring-2 ring-forest-300 dark:border-forest-400 dark:bg-forest-500/20 dark:ring-forest-500/40'
+                    ? 'is-active border-forest-500 bg-forest-50 ring-2 ring-forest-300 dark:border-forest-400 dark:bg-forest-500/20 dark:ring-forest-500/40'
                     : 'border-forest-100 bg-white hover:-translate-y-0.5 hover:border-forest-300 hover:bg-forest-50/70 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10',
                 )}
               >
@@ -276,7 +276,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
         </button>
       )}
       {user && addingType && (
-        <div className="flex flex-col gap-2 rounded-xl border border-forest-100 bg-forest-50 p-3 dark:border-white/10 dark:bg-white/5">
+        <div className="sd-subpanel flex flex-col gap-2 rounded-xl border border-forest-100 bg-forest-50 p-3 dark:border-white/10 dark:bg-white/5">
           <strong className="text-sm font-semibold text-forest-800 dark:text-forest-100">
             {t('newTypePanelTitle')}
           </strong>
@@ -367,7 +367,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
             accept={PHOTO_TYPES}
             multiple
             onChange={handlePhotosChange}
-            className="mt-1 block w-full text-sm text-forest-600 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-forest-700"
+            className="sd-file mt-1 block w-full text-sm text-forest-600 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-forest-700"
           />
           {photos.length > 0 && (
             <span className="mt-2 flex gap-1.5">
