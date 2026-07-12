@@ -11,46 +11,83 @@ import { cn } from '../lib/utils'
 const DEFAULT_CENTER = { lat: 44.8125, lng: 20.4612 }
 const DEFAULT_ZOOM = 13
 
+const POPUP_OFFSET = 22 // matches the <Popup offset> below
+
 // When a plant is selected, make sure its popup card is fully on screen. The
-// popup opens above the marker, so a marker near the top or side edge would be
-// clipped. We measure the rendered popup and ease the map just enough to bring
-// the whole card into view (with padding), without recentring unnecessarily.
+// popup opens above the marker, so a marker near an edge — or, on mobile, near
+// the bottom bar that floats over the map — would be clipped. We derive the
+// popup's box from the marker's projected point and the card's *layout* size
+// (stable while its open animation plays, unlike the animated bounding box),
+// then ease the map just enough to bring the whole card into view.
 function PanToSelected({ tree }) {
   const { current: map } = useMap()
   useEffect(() => {
     if (!map || !tree) return
     const m = map.getMap ? map.getMap() : map
-    let raf2 = 0
-    // Two frames so the popup is fully laid out before we measure its real box
-    // (the hazard card is the tallest, so an estimate would clip it).
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        const container = m.getContainer()
-        const popupEl = container.querySelector('.maplibregl-popup')
-        if (!popupEl) return
-        const c = container.getBoundingClientRect()
-        const p = popupEl.getBoundingClientRect()
+    let raf = 0
+    let tries = 0
+    const run = () => {
+      const container = m.getContainer()
+      const popupEl = container.querySelector('.maplibregl-popup')
+      // The popup mounts a render after selection (it waits on `shownTree`) and
+      // then lays out, so poll a few frames until it has a real size before
+      // measuring — otherwise we'd bail out or read a stale/zero box.
+      if (!popupEl || !popupEl.offsetWidth) {
+        if (tries++ < 15) raf = requestAnimationFrame(run)
+        return
+      }
+      {
+        const cRect = container.getBoundingClientRect()
+        const w = popupEl.offsetWidth
+        const h = popupEl.offsetHeight
         const pad = 12
 
-        let dy = 0
-        if (p.top < c.top + pad) dy = c.top + pad - p.top
-        else if (p.bottom > c.bottom - pad) dy = c.bottom - pad - p.bottom
+        // Marker anchor point, then the card box above it (anchor bottom,
+        // horizontally centred). Everything is in container-local pixels.
+        const pt = m.project([tree.lng, tree.lat])
+        const left = pt.x - w / 2
+        const right = pt.x + w / 2
+        const boxBottom = pt.y - POPUP_OFFSET
+        const top = boxBottom - h
+
+        // On mobile the melded bottom bar (search + nav + list) floats over the
+        // lower edge of the map. Without reserving that band a popup that looks
+        // "in bounds" is actually hidden behind the bar, so a tapped pin never
+        // appears to centre. Measure whatever chrome overlaps the map's bottom.
+        let bottomChrome = 0
+        const chromeEl = document.querySelector('[data-map-bottom-chrome]')
+        if (chromeEl) {
+          const b = chromeEl.getBoundingClientRect()
+          bottomChrome = Math.max(0, cRect.bottom - b.top)
+        }
+
+        const minX = pad
+        const maxX = cRect.width - pad
+        const minY = pad
+        const maxY = cRect.height - pad - bottomChrome
 
         let dx = 0
-        if (p.left < c.left + pad) dx = c.left + pad - p.left
-        else if (p.right > c.right - pad) dx = c.right - pad - p.right
+        if (left < minX) dx = minX - left
+        else if (right > maxX) dx = maxX - right
+
+        let dy = 0
+        if (h > maxY - minY) {
+          // Card taller than the safe area (e.g. the hazard card on a small
+          // phone): keep its bottom — the confirm/report buttons — clear of the
+          // bar, even if the top clips past the map's top edge.
+          dy = maxY - boxBottom
+        } else if (top < minY) dy = minY - top
+        else if (boxBottom > maxY) dy = maxY - boxBottom
 
         if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return
-        // Shift the map so the popup box moves by (dx, dy) on screen.
+        // Shift the map so the card box moves by (dx, dy) on screen.
         const center = m.project(m.getCenter())
         const newCenter = m.unproject([center.x - dx, center.y - dy])
         m.easeTo({ center: newCenter, duration: 320 })
-      })
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
+      }
     }
+    raf = requestAnimationFrame(run)
+    return () => cancelAnimationFrame(raf)
   }, [map, tree])
   return null
 }

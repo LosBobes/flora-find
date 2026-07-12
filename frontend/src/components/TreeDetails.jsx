@@ -1,6 +1,6 @@
 import { motion } from 'motion/react'
 import { categoryInfo, plantColor } from '../fruitIcons'
-import { PlantIcon, HazardBadge, GoneBadge } from '../icons'
+import { PlantIcon, GoneBadge } from '../icons'
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { formatSeason, seasonMonths } from '../seasons'
@@ -120,8 +120,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
         </h3>
 
         {tree.hazard && (
-          <p className="my-2 flex items-center gap-1.5 rounded-lg bg-red-700 px-2.5 py-1.5 text-xs font-bold text-white">
-            <HazardBadge size={16} className="shrink-0" />
+          <p className="my-2 rounded-lg bg-red-700 px-2.5 py-1.5 text-xs font-bold text-white">
             {t('hazardFlag')}
           </p>
         )}

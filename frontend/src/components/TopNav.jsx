@@ -51,7 +51,6 @@ function LangSwitch() {
 
 export default function TopNav({ filterProps, onLogin, onRegister }) {
   const { t } = useI18n()
-  const { searchText, setSearchText } = filterProps
   const { user, logout } = useAuth()
 
   return (
@@ -65,22 +64,13 @@ export default function TopNav({ filterProps, onLogin, onRegister }) {
           <Wordmark />
         </div>
 
-        {/* Desktop: full filter bar inline. */}
+        {/* Desktop: full filter bar inline. On mobile search + filters live in
+            the melded bottom bar, so the header stays just the wordmark. */}
         <div className="hidden flex-1 md:flex">
           <Filters variant="bar" {...filterProps} />
         </div>
 
-        {/* Mobile: just a search box; other filters live in the dock sheet. */}
-        <div className="flex flex-1 md:hidden">
-          <input
-            className="w-full rounded-xl border border-forest-100 bg-white px-3 py-2 text-sm text-forest-900 shadow-sm outline-none focus:border-forest-400 focus:ring-2 focus:ring-forest-200 dark:border-white/10 dark:bg-white/5 dark:text-forest-50 dark:placeholder-forest-300"
-            placeholder={t('searchPlaceholder')}
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
           {/* Language toggle: desktop only. On mobile it lives in the settings
               drawer so the search box gets the full width. */}
           <div className="hidden md:block">

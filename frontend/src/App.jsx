@@ -11,8 +11,7 @@ import TreeForm from './components/TreeForm'
 import TopNav from './components/TopNav'
 import PlantList from './components/PlantList'
 import MapSettingsControl from './components/MapSettingsControl'
-import MobileDock from './components/MobileDock'
-import BottomSheet from './components/BottomSheet'
+import MobileBottomBar from './components/MobileBottomBar'
 import { ShimmerButton } from './ui/shimmer-button'
 import { cn } from './lib/utils'
 
@@ -400,18 +399,14 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {/* Mobile: bottom sheet with the list + floating dock */}
-        <BottomSheet>
-          <PlantList
-            trees={trees}
-            selectedTree={selectedTree}
-            onSelect={selectFromList}
-            countSuffix={countSuffix}
-          />
-        </BottomSheet>
       </div>
 
-      <MobileDock
+      {/* Mobile: one melded bar — search + nav + the pull-up plant list. */}
+      <MobileBottomBar
+        trees={trees}
+        selectedTree={selectedTree}
+        onSelectTree={selectFromList}
+        countSuffix={countSuffix}
         user={user}
         onLogin={() => setAuthModal('login')}
         onLogout={logout}

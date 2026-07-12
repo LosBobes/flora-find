@@ -158,6 +158,8 @@ const STRINGS = {
     thanksConfirming: 'Thanks for confirming!',
     thanksReporting: 'Noted, thanks for reporting.',
 
+    togglePlantList: 'Toggle plant list',
+
     // Map settings
     mapSettings: 'Map settings',
     mapTheme: 'Map theme',
@@ -313,6 +315,8 @@ const STRINGS = {
     locationError: ({ message }) => `Nije moguće utvrditi lokaciju: ${message}`,
     thanksConfirming: 'Hvala na potvrdi!',
     thanksReporting: 'Zabeleženo, hvala na prijavi.',
+
+    togglePlantList: 'Prikaži listu biljaka',
 
     // Map settings
     mapSettings: 'Podešavanja mape',

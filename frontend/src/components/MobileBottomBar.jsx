@@ -1,15 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { motion, useAnimationControls, useDragControls } from 'motion/react'
 import { useI18n, LANGUAGES } from '../i18n'
-import { Dock, DockIcon } from '../ui/dock'
 import { MAP_THEMES, MARKER_SIZES, useMapSettings } from '../MapSettingsContext'
 import Filters from './Filters'
 import Drawer from './Drawer'
+import PlantList from './PlantList'
 import { cn } from '../lib/utils'
 
 const ICONS = {
-  add: (
-    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-  ),
+  add: <path d="M12 5v14M5 12h14" strokeLinecap="round" />,
   location: (
     <>
       <circle cx="12" cy="10" r="3" />
@@ -49,21 +48,31 @@ function Glyph({ name }) {
   )
 }
 
-function DockButton({ name, label, active, onClick }) {
+function SearchIcon() {
   return (
-    <DockIcon
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function BarButton({ name, label, active, onClick }) {
+  return (
+    <button
+      type="button"
       onClick={onClick}
       title={label}
       aria-label={label}
       className={cn(
-        'border shadow-glow backdrop-blur transition',
+        'grid size-11 shrink-0 place-items-center rounded-2xl border transition active:scale-95',
         active
-          ? 'border-forest-600 bg-forest-600 text-white'
-          : 'border-forest-100 bg-white/90 text-forest-700 dark:border-white/10 dark:bg-[#12241a]/90 dark:text-forest-100',
+          ? 'border-forest-600 bg-forest-600 text-white shadow-glow'
+          : 'border-forest-100 bg-white/80 text-forest-700 dark:border-white/10 dark:bg-white/5 dark:text-forest-100',
       )}
     >
       <Glyph name={name} />
-    </DockIcon>
+    </button>
   )
 }
 
@@ -75,7 +84,15 @@ function SectionLabel({ children }) {
   )
 }
 
-export default function MobileDock({
+// The single mobile bottom element: a draggable sheet whose always-visible header
+// carries the search field and the nav icon row, and which expands upward to
+// reveal the plant list. It replaces the old separate floating dock + bottom
+// sheet so the two read as one melded surface rising from the bottom edge.
+export default function MobileBottomBar({
+  trees,
+  selectedTree,
+  onSelectTree,
+  countSuffix,
   user,
   onLogin,
   onLogout,
@@ -90,9 +107,33 @@ export default function MobileDock({
   filterProps,
 }) {
   const { t, lang, setLang } = useI18n()
+  const { searchText, setSearchText } = filterProps
   const { theme, markerSize, showLabels, setTheme, setMarkerSize, toggleLabels } = useMapSettings()
+
   const [panel, setPanel] = useState(null) // 'settings' | 'filters' | 'account' | null
   const toggle = (name) => setPanel((current) => (current === name ? null : name))
+
+  const sheetRef = useRef(null)
+  const headerRef = useRef(null)
+  const controls = useAnimationControls()
+  const dragControls = useDragControls()
+  const [collapsedY, setCollapsedY] = useState(420)
+  const [expanded, setExpanded] = useState(false)
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const sheetH = sheetRef.current?.offsetHeight ?? 0
+      const headerH = headerRef.current?.offsetHeight ?? 0
+      setCollapsedY(Math.max(0, sheetH - headerH))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  useEffect(() => {
+    controls.start({ y: expanded ? 0 : collapsedY, transition: { type: 'spring', stiffness: 320, damping: 34 } })
+  }, [expanded, collapsedY, controls])
 
   return (
     <>
@@ -212,45 +253,95 @@ export default function MobileDock({
         )}
       </Drawer>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center md:hidden">
-        <div className="pointer-events-auto relative">
-          <Dock className="border border-forest-100 bg-white/70 px-3 py-2 shadow-card backdrop-blur-md dark:border-white/10 dark:bg-[#12241a]/80">
-          <DockButton name="add" label={t('registerPlant')} active={addMode} onClick={onToggleAdd} />
-          <DockButton
-            name="location"
-            label={t('nearMe')}
-            active={!!nearMe || locating}
-            onClick={onNearMe}
-          />
-          {isAdmin && (
-            <DockButton
-              name="export"
-              label={t('exportArea')}
-              active={selectingArea}
-              onClick={onToggleExport}
+      <motion.div
+        ref={sheetRef}
+        drag="y"
+        dragListener={false}
+        dragControls={dragControls}
+        dragConstraints={{ top: 0, bottom: collapsedY }}
+        dragElastic={0.06}
+        initial={false}
+        animate={controls}
+        onDragEnd={(event, info) => {
+          const up = info.velocity.y < -300 || info.offset.y < -80
+          const down = info.velocity.y > 300 || info.offset.y > 80
+          if (up) setExpanded(true)
+          else if (down) setExpanded(false)
+          else controls.start({ y: expanded ? 0 : collapsedY })
+        }}
+        className="fixed inset-x-0 bottom-0 z-40 flex h-[80vh] flex-col rounded-t-3xl border border-forest-100 bg-white/95 shadow-card backdrop-blur-md dark:border-white/10 dark:bg-[#0e1f14]/95 md:hidden"
+      >
+        {/* Always-visible header: grab handle + search + nav. This is the band
+            the map's PanToSelected keeps popups clear of (data attribute). */}
+        <div ref={headerRef} data-map-bottom-chrome className="shrink-0 px-3 pb-3">
+          <div
+            onPointerDown={(event) => dragControls.start(event)}
+            onClick={() => setExpanded((v) => !v)}
+            className="flex cursor-grab touch-none flex-col items-center py-2.5 active:cursor-grabbing"
+            aria-label={t('togglePlantList')}
+          >
+            <span className="h-1.5 w-10 rounded-full bg-forest-200 dark:bg-white/20" />
+          </div>
+
+          <div className="relative mb-2.5">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-forest-400">
+              <SearchIcon />
+            </span>
+            <input
+              className="w-full rounded-xl border border-forest-100 bg-white py-2.5 pl-10 pr-3 text-sm text-forest-900 shadow-sm outline-none focus:border-forest-400 focus:ring-2 focus:ring-forest-200 dark:border-white/10 dark:bg-white/5 dark:text-forest-50 dark:placeholder-forest-300"
+              placeholder={t('searchPlaceholder')}
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
             />
-          )}
-          <DockButton
-            name="palette"
-            label={t('mapSettings')}
-            active={panel === 'settings'}
-            onClick={() => toggle('settings')}
-          />
-          <DockButton
-            name="sliders"
-            label={t('filters')}
-            active={panel === 'filters'}
-            onClick={() => toggle('filters')}
-          />
-          <DockButton
-            name="user"
-            label={t('account')}
-            active={panel === 'account'}
-            onClick={() => toggle('account')}
-          />
-          </Dock>
+          </div>
+
+          <div className="flex items-center justify-between gap-1">
+            <BarButton name="add" label={t('registerPlant')} active={addMode} onClick={onToggleAdd} />
+            <BarButton
+              name="location"
+              label={t('nearMe')}
+              active={!!nearMe || locating}
+              onClick={onNearMe}
+            />
+            {isAdmin && (
+              <BarButton
+                name="export"
+                label={t('exportArea')}
+                active={selectingArea}
+                onClick={onToggleExport}
+              />
+            )}
+            <BarButton
+              name="palette"
+              label={t('mapSettings')}
+              active={panel === 'settings'}
+              onClick={() => toggle('settings')}
+            />
+            <BarButton
+              name="sliders"
+              label={t('filters')}
+              active={panel === 'filters'}
+              onClick={() => toggle('filters')}
+            />
+            <BarButton
+              name="user"
+              label={t('account')}
+              active={panel === 'account'}
+              onClick={() => toggle('account')}
+            />
+          </div>
         </div>
-      </div>
+
+        {/* Expanded body: the plant list, revealed when the sheet is pulled up. */}
+        <div className="flex min-h-0 flex-1 flex-col border-t border-forest-100 px-4 pt-3 pb-28 dark:border-white/10">
+          <PlantList
+            trees={trees}
+            selectedTree={selectedTree}
+            onSelect={onSelectTree}
+            countSuffix={countSuffix}
+          />
+        </div>
+      </motion.div>
     </>
   )
 }
