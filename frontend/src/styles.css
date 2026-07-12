@@ -372,3 +372,237 @@
   outline: 2px solid var(--sd-ink) !important;
   outline-offset: 1px !important;
 }
+
+/* --- Stardew add/edit plant form -----------------------------------------
+   The plant form is the app's tallest surface and its inner controls escape the
+   generic `.shadow-card` / native-input skinning: the category picker, the live
+   preview, the custom (non-native) Select, the file picker, the checkbox and the
+   "add a type" sub-panel all render as plain forest-green Tailwind cards. These
+   rules carve every one of them into the same wooden HUD so the whole sheet reads
+   as a single Stardew menu. Reusable carved surfaces:
+     • a sunk parchment slot (readable insets: preview, icon well, sub-panel)
+     • a raised plank (tappable tiles / file button)
+   All hooks are inert outside `.theme-stardew`. */
+
+/* On phones the form fills the screen as a plain white layer; give it the same
+   honey board + faint plank seams as a HUD panel so nothing behind the controls
+   reads as flat white. On desktop it already rides `.shadow-card`. */
+.theme-stardew .sd-form-sheet {
+  background-color: var(--sd-panel) !important;
+  background-image: var(--sd-wood-grain) !important;
+}
+
+.theme-stardew .sd-sheet-header {
+  border-bottom: 3px solid var(--sd-wood-edge) !important;
+  box-shadow: inset 0 -3px 0 0 rgba(226, 168, 102, 0.5);
+}
+
+/* Sunk parchment slot — a readable panel carved INTO the board (dark rim, bright
+   top bevel, soft interior shade). Shared by the live preview and the add-type
+   sub-panel. */
+.theme-stardew .sd-preview,
+.theme-stardew .sd-subpanel {
+  background: #ecd2a3 !important;
+  background-image: none !important;
+  border: 2px solid var(--sd-wood-dark) !important;
+  border-radius: 9px !important;
+  box-shadow:
+    0 0 0 2px var(--sd-wood-edge),
+    inset 0 2px 0 rgba(255, 247, 228, 0.55),
+    inset 0 -4px 8px rgba(120, 74, 34, 0.22) !important;
+}
+
+/* The preview's corner watermark emoji already sits at low opacity — leave it. */
+
+/* Icon well inside the preview: a small parchment inventory slot. */
+.theme-stardew .sd-icon-slot {
+  background: #fff6e6 !important;
+  border: 2px solid var(--sd-wood-dark) !important;
+  border-radius: 7px !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -2px 4px rgba(120, 74, 34, 0.28) !important;
+}
+
+/* Category picker: raised wooden inventory tiles. Idle tiles sit proud on a dark
+   bottom lip; the selected one presses down into the board with a lit cream inlay
+   and a heavy cocoa outline (mirrors the season-calendar "current month" cue). */
+.theme-stardew .sd-tile {
+  background: #e9cd9c !important;
+  background-image: none !important;
+  border: 2px solid var(--sd-wood-dark) !important;
+  border-radius: 9px !important;
+  color: var(--sd-ink) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -3px 0 rgba(120, 74, 34, 0.3),
+    0 3px 0 0 #a9793f,
+    0 4px 5px rgba(74, 44, 18, 0.28) !important;
+  transition: transform 0.06s ease, box-shadow 0.06s ease !important;
+}
+
+.theme-stardew .sd-tile:hover {
+  transform: translateY(-1px) !important;
+}
+
+.theme-stardew .sd-tile:active,
+.theme-stardew .sd-tile.is-active {
+  background: linear-gradient(180deg, #f6e4bd 0%, #e4c589 100%) !important;
+  border-color: #6f4a1f !important;
+  outline: 2px solid var(--sd-ink) !important;
+  outline-offset: 1px !important;
+  transform: translateY(3px) !important;
+  box-shadow:
+    inset 0 2px 6px rgba(120, 74, 34, 0.4),
+    inset 0 0 0 2px rgba(255, 247, 228, 0.5) !important;
+}
+
+/* Custom Select (used for plant type + season across the app). The trigger is a
+   <button>, so the generic `input, select` parchment rule never reaches it — carve
+   it here to match the native text fields. */
+.theme-stardew .sd-select {
+  background: #fff6e6 !important;
+  border: 2px solid var(--sd-wood-dark) !important;
+  border-radius: 7px !important;
+  color: var(--sd-ink) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(120, 74, 34, 0.2) !important;
+}
+
+.theme-stardew .sd-select svg {
+  color: var(--sd-wood-dark) !important;
+}
+
+/* The unselected placeholder label is `text-forest-400`, a green tint the theme's
+   copy-retint doesn't cover — mute it to parchment ink so it reads like a real
+   input placeholder, not a stray green accent. */
+.theme-stardew .sd-select .text-forest-400 {
+  color: rgba(107, 68, 35, 0.6) !important;
+}
+
+/* Its dropdown (portalled to <body>, so outside the themed sheet but still under
+   the themed <html> root) becomes a floating wooden panel with parchment options
+   and a lit-green selected row. */
+.theme-stardew .sd-menu {
+  background-color: var(--sd-panel) !important;
+  background-image: var(--sd-wood-grain) !important;
+  border: 3px solid var(--sd-wood) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    0 0 0 2px var(--sd-wood-edge),
+    inset 0 0 0 2px var(--sd-wood-hi),
+    0 12px 24px rgba(74, 44, 18, 0.4) !important;
+}
+
+.theme-stardew .sd-menu [role='option'] {
+  color: var(--sd-ink) !important;
+  border-radius: 5px !important;
+}
+
+.theme-stardew .sd-menu [role='option']:hover:not([aria-selected='true']) {
+  background: rgba(120, 74, 34, 0.16) !important;
+}
+
+.theme-stardew .sd-menu [role='option'][aria-selected='true'] {
+  background: linear-gradient(180deg, #7cc24f 0%, #3f7c22 100%) !important;
+  color: #fff !important;
+}
+
+.theme-stardew .sd-menu [role='option'][aria-selected='true'] svg {
+  color: #fff !important;
+}
+
+/* File picker: parchment field label + a raised wooden "Choose files" plank. */
+.theme-stardew .sd-file {
+  color: var(--sd-ink-soft) !important;
+}
+
+.theme-stardew .sd-file::file-selector-button {
+  background: #fff6e6 !important;
+  color: var(--sd-ink) !important;
+  border: 2px solid var(--sd-wood-dark) !important;
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+  padding: 0.35rem 0.7rem !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.65),
+    0 2px 0 0 #a9793f !important;
+}
+
+/* Custom carved checkbox (the hazard flag) — parchment box that fills with a lit
+   green gem + white tick when ticked. */
+.theme-stardew input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  background: #fff6e6 !important;
+  border: 2px solid var(--sd-wood-dark) !important;
+  border-radius: 4px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1px 3px rgba(120, 74, 34, 0.25) !important;
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+}
+
+.theme-stardew input[type='checkbox']:checked {
+  background: linear-gradient(180deg, #7cc24f 0%, #3f7c22 100%) !important;
+  border-color: #274310 !important;
+}
+
+.theme-stardew input[type='checkbox']:checked::after {
+  content: '';
+  width: 0.3rem;
+  height: 0.58rem;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg) translateY(-1px);
+}
+
+/* Action buttons inside the form sheet (cancel + the add-type ghosts) only get the
+   plank treatment on desktop, where the sheet is a `.shadow-card`; on phones the
+   sheet is a plain layer, so extend the same skins here. The `:not()` guards keep
+   this off the hooked controls that happen to be `bg-white` buttons — the category
+   tiles and the Select trigger, which own their own carved look above. (The primary
+   Save CTA is a hooked ShimmerButton, already covered.) */
+.theme-stardew .sd-form-sheet button.bg-white:not(.sd-tile):not(.sd-select),
+.theme-stardew .sd-form-sheet button.bg-forest-600:not(.sd-tile) {
+  border-radius: 7px !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+  transition: transform 0.06s ease, box-shadow 0.06s ease !important;
+}
+
+.theme-stardew .sd-form-sheet button.bg-forest-600:not(.sd-tile) {
+  background: linear-gradient(180deg, #67ac44 0%, #3f7c22 100%) !important;
+  color: #fff !important;
+  border: 2px solid #274310 !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -3px 0 rgba(39, 67, 16, 0.55),
+    0 3px 0 0 #274310,
+    0 5px 6px rgba(39, 44, 18, 0.35) !important;
+}
+
+.theme-stardew .sd-form-sheet button.bg-white:not(.sd-tile):not(.sd-select) {
+  background: #fff6e6 !important;
+  color: var(--sd-ink) !important;
+  border: 2px solid var(--sd-wood-dark) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -3px 0 rgba(120, 74, 34, 0.28),
+    0 3px 0 0 #a9793f,
+    0 5px 6px rgba(74, 44, 18, 0.28) !important;
+}
+
+.theme-stardew .sd-form-sheet button.bg-white:not(.sd-tile):not(.sd-select):active,
+.theme-stardew .sd-form-sheet button.bg-forest-600:not(.sd-tile):active {
+  transform: translateY(3px) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35) !important;
+}
