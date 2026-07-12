@@ -147,9 +147,9 @@ def polygon_centroid(polygon: list) -> tuple[float, float]:
 class PlantType(Base):
     """The controlled vocabulary of plant/fruit types a plant can be tagged with.
 
-    Regular users pick a type from this list; only admins can add new ones, and
-    when they do they must supply a name in every supported language. The English
-    name is the canonical value stored in ``Tree.fruit_type``.
+    Users pick a type from this list; any signed-in user can also add a new one,
+    and when they do they must supply a name in every supported language. The
+    English name is the canonical value stored in ``Tree.fruit_type``.
     """
 
     __tablename__ = "plant_types"

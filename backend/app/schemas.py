@@ -58,6 +58,27 @@ class PlantTypeOut(BaseModel):
     names: dict[str, str]
 
 
+class ProfileBadge(BaseModel):
+    """One entry in a user's contribution catalog: how many plants (points and
+    areas together) of a given category/type they have added. Carries ``hazard``
+    so the frontend can render the same marker artwork the plant gets on the map."""
+
+    category: PlantCategory
+    fruit_type: str
+    count: int
+    hazard: bool = False
+
+
+class ProfileOut(BaseModel):
+    user: UserOut
+    member_since: datetime
+    plant_count: int
+    area_count: int
+    # The catalog: one "badge" per distinct plant type the user has contributed,
+    # ordered most-added first.
+    badges: list[ProfileBadge] = []
+
+
 class TreeBase(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     category: PlantCategory = "fruit_tree"

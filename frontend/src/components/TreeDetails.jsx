@@ -80,7 +80,7 @@ function CrossIcon() {
   )
 }
 
-export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onConfirm }) {
+export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onConfirm, onOpenProfile }) {
   const { t, lang, name: plantName, desc, monthsShort } = useI18n()
   const { localized: localizedType } = usePlantTypes()
   const daysAgo = useDaysAgo()
@@ -220,6 +220,18 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
             date: new Date(tree.created_at).toLocaleDateString(),
           })}
           {tree.last_confirmed_at && <> · {t('lastConfirmed', { when: daysAgo(tree.last_confirmed_at) })}</>}
+          {tree.owner?.id != null && onOpenProfile && (
+            <>
+              {' · '}
+              <button
+                type="button"
+                onClick={() => onOpenProfile(tree.owner.id)}
+                className="font-semibold text-forest-600 underline hover:text-forest-700 dark:text-forest-300"
+              >
+                {t('viewCatalog')}
+              </button>
+            </>
+          )}
         </p>
       </div>
 

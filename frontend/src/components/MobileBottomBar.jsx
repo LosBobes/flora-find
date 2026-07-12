@@ -107,6 +107,7 @@ export default function MobileBottomBar({
   user,
   onLogin,
   onLogout,
+  onOpenProfile,
   addMode,
   onToggleAdd,
   nearMe,
@@ -258,6 +259,16 @@ export default function MobileBottomBar({
             <p className="text-sm text-forest-700 dark:text-forest-100">
               {t('hi', { username: user.username })}
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                onOpenProfile?.(user.id)
+                setPanel(null)
+              }}
+              className="rounded-xl bg-forest-600 px-3 py-2 text-sm font-semibold text-white"
+            >
+              {t('myCatalog')}
+            </button>
             <button
               type="button"
               onClick={() => {

@@ -67,7 +67,7 @@ function HelpButton({ onClick, label }) {
   )
 }
 
-export default function TopNav({ filterProps, onLogin, onRegister, onHelp }) {
+export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpenProfile }) {
   const { t } = useI18n()
   const { user, logout } = useAuth()
 
@@ -101,9 +101,14 @@ export default function TopNav({ filterProps, onLogin, onRegister, onHelp }) {
           <div className="hidden items-center gap-2 md:flex">
             {user ? (
               <>
-                <span className="max-w-[140px] truncate text-sm text-forest-700 dark:text-forest-100">
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile?.(user.id)}
+                  title={t('myCatalog')}
+                  className="max-w-[140px] truncate rounded-lg px-1.5 py-0.5 text-sm font-medium text-forest-700 underline decoration-forest-300 underline-offset-2 transition hover:bg-forest-50 hover:text-forest-900 dark:text-forest-100 dark:hover:bg-white/10"
+                >
                   {t('hi', { username: user.username })}
-                </span>
+                </button>
                 {user.is_admin && (
                   <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
                     {t('admin')}

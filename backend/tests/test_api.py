@@ -777,6 +777,54 @@ def test_duplicate_plant_type_rejected():
     assert add_plant_type(token, "tree", {"en": "cherry", "sr": "Trešnja"}).status_code == 409
 
 
+# --- User profiles (contribution catalog) ----------------------------------
+
+
+def test_profile_catalogs_a_users_contributions():
+    session = register()
+    token = session["access_token"]
+    user_id = session["user"]["id"]
+
+    make_tree(token, fruit_type="Cherry")
+    make_tree(token, name="Another cherry", fruit_type="Cherry")
+    make_tree(token, name="Oak in the park", category="tree", fruit_type="Oak")
+
+    resp = client.get(f"/api/users/{user_id}/profile")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["user"]["username"] == "ana"
+    assert body["plant_count"] == 3
+    assert body["area_count"] == 0
+    assert "member_since" in body
+
+    # One badge per distinct type, most-added first: Cherry (2) then Oak (1).
+    badges = body["badges"]
+    assert [(b["fruit_type"], b["count"]) for b in badges] == [("Cherry", 2), ("Oak", 1)]
+    assert badges[0]["category"] == "fruit_tree"
+    assert badges[1]["category"] == "tree"
+
+
+def test_profile_marks_hazard_types():
+    session = register()
+    token = session["access_token"]
+    user_id = session["user"]["id"]
+
+    ensure_plant_type("other", "Poison ivy")
+    client.post(
+        "/api/trees",
+        json={"name": "Nasty patch", "category": "other", "fruit_type": "Poison ivy",
+              "hazard": True, "lat": 44.8, "lng": 20.4},
+        headers=auth_headers(token),
+    )
+
+    badges = client.get(f"/api/users/{user_id}/profile").json()["badges"]
+    assert badges == [{"category": "other", "fruit_type": "Poison ivy", "count": 1, "hazard": True}]
+
+
+def test_profile_unknown_user_is_404():
+    assert client.get("/api/users/999999/profile").status_code == 404
+
+
 # --- Areas -----------------------------------------------------------------
 
 SQUARE = [[20.46, 44.81], [20.47, 44.81], [20.47, 44.82], [20.46, 44.82]]

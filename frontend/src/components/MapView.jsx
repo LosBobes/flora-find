@@ -202,7 +202,7 @@ function BoxSelect({ active, onComplete, onCancel }) {
 
 function DraftPin() {
   return (
-    <svg width="30" height="42" viewBox="0 0 30 42" className="draft-pin">
+    <svg width="30" height="42" viewBox="0 0 30 42" className="draft-pin cursor-grab active:cursor-grabbing">
       <path
         d="M15 0C6.7 0 0 6.7 0 15c0 11 15 27 15 27s15-16 15-27C30 6.7 23.3 0 15 0z"
         fill="#2e7d32"
@@ -221,6 +221,7 @@ export default function MapView({
   addMode,
   draftPosition,
   onMapClick,
+  onDraftMove,
   onBoundsChanged,
   panTarget,
   userPosition,
@@ -470,6 +471,8 @@ export default function MapView({
           latitude={draftPosition.lat}
           anchor="bottom"
           style={{ zIndex: 3 }}
+          draggable
+          onDragEnd={(event) => onDraftMove?.({ lat: event.lngLat.lat, lng: event.lngLat.lng })}
         >
           <DraftPin />
         </Marker>

@@ -21,14 +21,14 @@ EARTH_RADIUS_KM = 6371.0
 
 
 def ensure_known_plant_type(db: Session, fruit_type: str) -> None:
-    """Plants may only use a type from the managed vocabulary. Admins add new
-    types via /api/plant-types; everyone else picks from what exists."""
+    """Plants may only use a type from the managed vocabulary. Any signed-in user
+    can add new types via /api/plant-types; here we just require the type exists."""
     wanted = fruit_type.strip().lower()
     exists = any(pt.canonical.strip().lower() == wanted for pt in db.query(PlantType).all())
     if not exists:
         raise HTTPException(
             status_code=400,
-            detail="Unknown plant type. Pick one from the list, or ask an admin to add it.",
+            detail="Unknown plant type. Pick one from the list, or add it as a new type.",
         )
 
 
