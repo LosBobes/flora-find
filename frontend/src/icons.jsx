@@ -262,9 +262,9 @@ export function BrandMark({ size = 22 }) {
         fill="none"
         strokeLinecap="round"
       />
-      <path d="M8.4 12 L 9.6 14.3 L 12 15.3" stroke="#2e7d32" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M11.6 9.1 L 12.6 11.1 L 14.6 11.9" stroke="#2e7d32" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14.6 6.7 L 15.4 8.2 L 16.9 8.9" stroke="#2e7d32" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.4 12 Q8.13 14.11 9.6 14.3 Q9.93 15.76 12 15.3" stroke="#2e7d32" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11.6 9.1 Q11.23 11.06 12.6 11.1 Q12.73 12.46 14.6 11.9" stroke="#2e7d32" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14.6 6.7 Q14.13 8.41 15.4 8.2 Q15.28 9.51 16.9 8.9" stroke="#2e7d32" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
