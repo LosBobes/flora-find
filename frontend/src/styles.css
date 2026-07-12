@@ -158,51 +158,97 @@
 /* ---- Stardew Valley cozy theme --------------------------------------------
    A warm, pixel-art farm skin toggled by the `theme-stardew` class on <html>
    (see MapSettingsContext). It leans on the VT323 pixel font (index.html) and
-   re-tints the chrome to parchment + wood WITHOUT touching component markup:
-   every floating card already carries `.shadow-card`, so that's our hook. */
+   re-skins the chrome so every floating surface reads as a wooden plank panel
+   WITHOUT touching component markup: every floating card already carries
+   `.shadow-card`, so that's our hook.
+
+   Two reusable wood recipes drive the whole skin:
+   --sd-wood-grain    pale pine planks — light enough that the app's existing
+                      dark text stays readable, so surfaces look like wood but
+                      copy is untouched.
+   --sd-wood-dark-grain darker oak planks for framing chrome (header). */
 .theme-stardew {
   --sd-parchment: #f6eccf;
   --sd-wood: #b07a45;
-  --sd-wood-dark: #8a5a2b;
-  --sd-ink: #4a3418;
+  --sd-wood-dark: #7a4f26;
+  --sd-wood-edge: #5f3d1c;
+  --sd-ink: #43301a;
+  /* Pale pine: horizontal plank seams + vertical grain streaks over a warm
+     tan base, topped with a soft light-to-shadow wash for a rounded board. */
+  --sd-wood-grain:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 37px,
+      rgba(120, 80, 40, 0.05) 37px 38px,
+      rgba(95, 61, 28, 0.28) 38px 40px,
+      rgba(255, 248, 232, 0.35) 40px 41px,
+      transparent 41px 42px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(150, 105, 55, 0.13) 0 3px,
+      rgba(150, 105, 55, 0) 3px 4px,
+      rgba(120, 80, 40, 0.09) 4px 8px,
+      rgba(120, 80, 40, 0) 8px 13px
+    ),
+    linear-gradient(180deg, rgba(255, 250, 236, 0.4), rgba(160, 110, 60, 0.12));
+  --sd-wood-base: #e6cf9f;
   font-family: 'VT323', 'Inter', system-ui, sans-serif;
   letter-spacing: 0.015em;
 }
 
 .theme-stardew body {
+  /* Apply the pixel font to the actual content — the base layer sets font-sans
+     directly on <body>, which would otherwise shadow the inherited family. */
+  font-family: 'VT323', 'Inter', system-ui, sans-serif;
+  font-size: 1.06rem;
   background:
     radial-gradient(130% 90% at 50% -20%, #cfe8a3 0%, rgba(207, 232, 163, 0) 45%),
-    var(--sd-parchment);
+    var(--sd-wood-base);
   color: var(--sd-ink);
 }
 
-/* Cozy parchment panels with a chunky wooden frame and a dropped bottom edge. */
+/* Floating panels become pale wooden boards: plank grain fill, a chunky carved
+   wood border, and a dropped bottom edge so the board looks thick. */
 .theme-stardew .shadow-card {
-  background: var(--sd-parchment) !important;
-  border-color: var(--sd-wood) !important;
-  border-width: 2px;
+  background-color: var(--sd-wood-base) !important;
+  background-image: var(--sd-wood-grain) !important;
+  border-color: var(--sd-wood-edge) !important;
+  border-width: 3px;
   box-shadow:
-    0 4px 0 0 var(--sd-wood-dark),
-    0 10px 24px rgba(74, 52, 24, 0.28);
+    inset 0 0 0 2px rgba(255, 248, 232, 0.35),
+    0 5px 0 0 var(--sd-wood-dark),
+    0 12px 26px rgba(74, 52, 24, 0.32);
 }
 
-/* Top bar reads as a wooden plank. */
+/* Top bar reads as a darker oak plank spanning the header. */
 .theme-stardew header {
-  background: linear-gradient(180deg, #c98f52 0%, #b07a45 100%);
-  border-bottom: 3px solid var(--sd-wood-dark);
+  background-color: #9c6533;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(60, 38, 16, 0.28) 0 3px,
+      rgba(60, 38, 16, 0) 3px 5px,
+      rgba(90, 58, 26, 0.22) 5px 10px,
+      rgba(90, 58, 26, 0) 10px 16px
+    ),
+    linear-gradient(180deg, #b07a45 0%, #8a5a2b 100%);
+  border-bottom: 4px solid var(--sd-wood-edge);
 }
 
-/* Inputs / selects sit on light parchment with a wood outline. */
+/* Inputs / selects sit on light parchment (readable text boxes carved into the
+   board) with a wood outline. */
 .theme-stardew input,
 .theme-stardew textarea,
 .theme-stardew select {
   background-color: #fffaf0;
-  border-color: var(--sd-wood);
+  background-image: none;
+  border-color: var(--sd-wood-dark);
   color: var(--sd-ink);
 }
 
-/* The plant popup's little tip matches the parchment card above it. */
+/* The plant popup's little tip matches the wooden card above it. */
 .theme-stardew .maplibregl-popup-tip {
-  border-top-color: var(--sd-parchment) !important;
-  border-bottom-color: var(--sd-parchment) !important;
+  border-top-color: var(--sd-wood-base) !important;
+  border-bottom-color: var(--sd-wood-base) !important;
 }
