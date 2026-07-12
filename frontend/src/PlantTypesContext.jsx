@@ -5,8 +5,8 @@ import { useI18n } from './i18n'
 const PlantTypesContext = createContext(null)
 
 // Loads the managed plant-type vocabulary once and shares it: the localized
-// label for a stored (English) type, the types available in a category, and an
-// admin-only helper to add a new type.
+// label for a stored (English) type, the types available in a category, and a
+// helper any signed-in user can call to add a new type.
 export function PlantTypesProvider({ children }) {
   const { lang } = useI18n()
   const [types, setTypes] = useState([])

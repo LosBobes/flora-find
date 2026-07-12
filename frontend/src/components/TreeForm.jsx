@@ -43,7 +43,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
 
-  // Admin-only "add a new type" panel.
+  // "Add a new type" panel — open to any signed-in user.
   const [addingType, setAddingType] = useState(false)
   const [newTypeNames, setNewTypeNames] = useState(emptyNames)
   const [typeError, setTypeError] = useState(null)
@@ -227,8 +227,8 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
         </span>
       </label>
 
-      {/* Only admins can extend the vocabulary; they must name it in every language. */}
-      {user?.is_admin && !addingType && (
+      {/* Any signed-in user can extend the vocabulary; they must name it in every language. */}
+      {user && !addingType && (
         <button
           type="button"
           className="self-start text-sm font-semibold text-forest-700 underline dark:text-forest-200"
@@ -237,7 +237,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
           + {t('addNewType')}
         </button>
       )}
-      {user?.is_admin && addingType && (
+      {user && addingType && (
         <div className="flex flex-col gap-2 rounded-xl border border-forest-100 bg-forest-50 p-3 dark:border-white/10 dark:bg-white/5">
           <strong className="text-sm font-semibold text-forest-800 dark:text-forest-100">
             {t('newTypePanelTitle')}

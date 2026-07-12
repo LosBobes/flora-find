@@ -8,6 +8,7 @@ import ExportPanel from './components/ExportPanel'
 import MapView from './components/MapView'
 import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
+import ProfilePanel from './components/ProfilePanel'
 import AreaDetails from './components/AreaDetails'
 import TopNav from './components/TopNav'
 import PlantList from './components/PlantList'
@@ -95,6 +96,7 @@ export default function App() {
   const [draftPolygon, setDraftPolygon] = useState([]) // [{lat, lng}]
   const [areaFormOpen, setAreaFormOpen] = useState(false)
   const [tourOpen, setTourOpen] = useState(false)
+  const [profileUserId, setProfileUserId] = useState(null)
 
   const showPlants = layerView !== 'areas'
   const showAreas = layerView !== 'plants'
@@ -320,6 +322,56 @@ export default function App() {
     }
   }
 
+  // Dragging the draft pin to fine-tune placement — the key to precise spots when
+  // several plants sit close together along a path.
+  function handleDraftMove(latLng) {
+    setDraftPosition(latLng)
+  }
+
+  // Drop the draft pin at the device's GPS position (high accuracy). Placing a
+  // plant right where you're standing beats eyeballing a tap on the map, which is
+  // what makes walked routes come out zig-zagged.
+  function placeAtMyLocation() {
+    if (!user) {
+      setAuthModal('login')
+      return
+    }
+    if (!navigator.geolocation) {
+      showNotice(t('geolocationUnsupported'))
+      return
+    }
+    if (!addMode) startAddMode()
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = { lat: position.coords.latitude, lng: position.coords.longitude }
+        setLocating(false)
+        setAddMode(true)
+        setDraftPosition(location)
+        setPanTarget({ ...location, ts: Date.now() })
+        const acc = Math.round(position.coords.accuracy ?? 0)
+        showNotice(t('locationPlaced', { acc }))
+      },
+      (err) => {
+        setLocating(false)
+        showNotice(t('locationError', { message: err.message }))
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    )
+  }
+
+  function openProfile(userId) {
+    if (userId == null) return
+    // Give the catalog the floating panel to itself.
+    setAddMode(false)
+    setDraftPosition(null)
+    setEditingTree(null)
+    setEditingArea(null)
+    setExportArea(null)
+    setAreaFormOpen(false)
+    setProfileUserId(userId)
+  }
+
   async function handleCreate(payload, photos) {
     const created = await api.createTree(payload)
     let message = t('registeredNotice', { name: created.name })
@@ -463,6 +515,7 @@ export default function App() {
         onLogin={() => setAuthModal('login')}
         onRegister={() => setAuthModal('register')}
         onHelp={() => setTourOpen(true)}
+        onOpenProfile={openProfile}
       />
 
       <div className="relative flex min-h-0 flex-1">
@@ -549,6 +602,7 @@ export default function App() {
             addMode={addMode}
             draftPosition={draftPosition}
             onMapClick={handleMapClick}
+            onDraftMove={handleDraftMove}
             onBoundsChanged={handleBoundsChanged}
             panTarget={panTarget}
             userPosition={nearMe}
@@ -581,6 +635,7 @@ export default function App() {
                 onEdit={() => setEditingTree(selectedTree)}
                 onDelete={handleDelete}
                 onConfirm={handleConfirm}
+                onOpenProfile={openProfile}
               />
             )}
           </MapView>
@@ -621,6 +676,36 @@ export default function App() {
                 >
                   {t('cancel')}
                 </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* While placing a plant: a GPS shortcut + drag hint so pins land on the
+              exact spot instead of an eyeballed tap. */}
+          <AnimatePresence>
+            {addMode && (
+              <motion.div
+                key="place-toolbar"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                className="absolute inset-x-3 top-3 z-30 mx-auto flex w-fit max-w-full flex-col items-center gap-1.5 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
+              >
+                <button
+                  type="button"
+                  onClick={placeAtMyLocation}
+                  disabled={locating}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-forest-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-forest-700 disabled:opacity-60"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <circle cx="12" cy="10" r="3" />
+                    <path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Z" />
+                  </svg>
+                  {locating ? t('locating') : t('useMyLocation')}
+                </button>
+                <span className="px-1 text-center text-[11px] font-medium leading-tight text-forest-600 dark:text-forest-200">
+                  {draftPosition ? t('dragPinHint') : t('clickToPlace')}
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -676,6 +761,11 @@ export default function App() {
                 />
               </FloatingPanel>
             )}
+            {profileUserId != null && (
+              <FloatingPanel key="profile-panel">
+                <ProfilePanel userId={profileUserId} onClose={() => setProfileUserId(null)} />
+              </FloatingPanel>
+            )}
           </AnimatePresence>
 
           <AnimatePresence>
@@ -703,6 +793,7 @@ export default function App() {
         user={user}
         onLogin={() => setAuthModal('login')}
         onLogout={logout}
+        onOpenProfile={openProfile}
         addMode={addMode}
         onToggleAdd={toggleAddMode}
         nearMe={nearMe}

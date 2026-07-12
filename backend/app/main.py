@@ -8,7 +8,7 @@ from .database import Base, SessionLocal, engine
 from .migrations import run_migrations
 from .models import Tree
 from .plant_type_seed import backfill_plant_types, seed_builtin_plant_types
-from .routers import area_routes, auth_routes, plant_type_routes, tree_routes
+from .routers import area_routes, auth_routes, plant_type_routes, tree_routes, user_routes
 from .sample_data import seed_sample_plants
 from .storage import UPLOAD_DIR
 
@@ -62,6 +62,7 @@ app.include_router(auth_routes.router)
 app.include_router(plant_type_routes.router)
 app.include_router(tree_routes.router)
 app.include_router(area_routes.router)
+app.include_router(user_routes.router)
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from ..auth import get_current_admin
+from ..auth import get_current_user
 from ..database import get_db
 from ..models import DEFAULT_LANGUAGE, PlantType, User
 from ..schemas import PlantCategory, PlantTypeCreate, PlantTypeOut
@@ -27,9 +27,9 @@ def list_plant_types(
 def create_plant_type(
     payload: PlantTypeCreate,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_current_admin),
+    user: User = Depends(get_current_user),
 ):
-    """Admin-only: add a new plant type with a name in every supported language."""
+    """Any signed-in user can add a new plant type, naming it in every supported language."""
     canonical = payload.names[DEFAULT_LANGUAGE].strip().lower()
     existing = next(
         (pt for pt in db.query(PlantType).all() if pt.canonical.strip().lower() == canonical),

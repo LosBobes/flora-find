@@ -181,6 +181,25 @@ const STRINGS = {
 
     togglePlantList: 'Toggle plant list',
 
+    // Location precision (placing a plant)
+    useMyLocation: 'Use my location',
+    dropPinHere: 'Drop pin here',
+    locationPlaced: ({ acc }) => `Pin dropped at your location (±${acc} m). Drag it to fine-tune.`,
+    dragPinHint: 'Tip: drag the pin on the map to place it exactly.',
+    pinLocation: 'Pin location',
+
+    // Profile / contribution catalog
+    myCatalog: 'My catalog',
+    catalogOf: ({ user }) => `${user}'s catalog`,
+    memberSince: ({ date }) => `Member since ${date}`,
+    typesAddedTitle: 'Types added',
+    areasCount: ({ count }) => `${count} area${count === 1 ? '' : 's'}`,
+    badgeCount: ({ count }) => `×${count}`,
+    catalogEmpty: 'No plants added yet.',
+    profileError: 'Could not load this catalog.',
+    loading: 'Loading…',
+    viewCatalog: 'View catalog',
+
     // Map settings
     mapSettings: 'Map settings',
     mapTheme: 'Map theme',
@@ -395,6 +414,25 @@ const STRINGS = {
     thanksReporting: 'Zabeleženo, hvala na prijavi.',
 
     togglePlantList: 'Prikaži listu biljaka',
+
+    // Location precision (placing a plant)
+    useMyLocation: 'Koristi moju lokaciju',
+    dropPinHere: 'Postavi oznaku ovde',
+    locationPlaced: ({ acc }) => `Oznaka postavljena na tvoju lokaciju (±${acc} m). Prevuci je za precizno podešavanje.`,
+    dragPinHint: 'Savet: prevuci oznaku na mapi da je postaviš tačno.',
+    pinLocation: 'Lokacija oznake',
+
+    // Profile / contribution catalog
+    myCatalog: 'Moj katalog',
+    catalogOf: ({ user }) => `Katalog korisnika ${user}`,
+    memberSince: ({ date }) => `Član od ${date}`,
+    typesAddedTitle: 'Dodati tipovi',
+    areasCount: ({ count }) => `${count} ${srPlural(count, 'oblast', 'oblasti', 'oblasti')}`,
+    badgeCount: ({ count }) => `×${count}`,
+    catalogEmpty: 'Još nema dodatih biljaka.',
+    profileError: 'Nije moguće učitati ovaj katalog.',
+    loading: 'Učitavanje…',
+    viewCatalog: 'Pogledaj katalog',
 
     // Map settings
     mapSettings: 'Podešavanja mape',
