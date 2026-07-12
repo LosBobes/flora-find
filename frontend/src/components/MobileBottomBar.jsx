@@ -38,6 +38,16 @@ const ICONS = {
       <path d="M5 21h14" strokeLinecap="round" />
     </>
   ),
+  polygon: (
+    <>
+      <path d="M12 3 21 9l-3 10H6L3 9l9-6Z" strokeLinejoin="round" />
+      <circle cx="12" cy="3" r="1.4" fill="currentColor" />
+      <circle cx="21" cy="9" r="1.4" fill="currentColor" />
+      <circle cx="18" cy="19" r="1.4" fill="currentColor" />
+      <circle cx="6" cy="19" r="1.4" fill="currentColor" />
+      <circle cx="3" cy="9" r="1.4" fill="currentColor" />
+    </>
+  ),
 }
 
 function Glyph({ name }) {
@@ -104,6 +114,8 @@ export default function MobileBottomBar({
   isAdmin,
   selectingArea,
   onToggleExport,
+  drawingArea,
+  onToggleDraw,
   filterProps,
 }) {
   const { t, lang, setLang } = useI18n()
@@ -297,6 +309,12 @@ export default function MobileBottomBar({
 
           <div className="flex items-center justify-between gap-1">
             <BarButton name="add" label={t('registerPlant')} active={addMode} onClick={onToggleAdd} />
+            <BarButton
+              name="polygon"
+              label={t('drawArea')}
+              active={drawingArea}
+              onClick={onToggleDraw}
+            />
             <BarButton
               name="location"
               label={t('nearMe')}

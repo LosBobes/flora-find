@@ -102,6 +102,85 @@ class TreeUpdate(BaseModel):
     lng: float | None = Field(default=None, ge=-180, le=180)
 
 
+# The outer ring of an area: a list of [lng, lat] pairs (GeoJSON order). Kept
+# unclosed (the first vertex is not repeated) and capped so a stray draw can't
+# post a huge payload.
+MAX_POLYGON_POINTS = 500
+
+
+def _validate_polygon(points: list[list[float]]) -> list[list[float]]:
+    if len(points) < 3:
+        raise ValueError("An area needs at least 3 points")
+    if len(points) > MAX_POLYGON_POINTS:
+        raise ValueError(f"An area can have at most {MAX_POLYGON_POINTS} points")
+    cleaned: list[list[float]] = []
+    for point in points:
+        if len(point) != 2:
+            raise ValueError("Each point must be a [lng, lat] pair")
+        lng, lat = float(point[0]), float(point[1])
+        if not (-180 <= lng <= 180) or not (-90 <= lat <= 90):
+            raise ValueError("Point out of range")
+        cleaned.append([lng, lat])
+    return cleaned
+
+
+class AreaBase(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    category: PlantCategory = "fruit_tree"
+    fruit_type: str = Field(min_length=1, max_length=80)
+    hazard: bool = Field(default=False, description="Poisonous or dangerous to touch/eat")
+    species: str | None = Field(default=None, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+    season_start: int | None = Field(default=None, ge=1, le=12)
+    season_end: int | None = Field(default=None, ge=1, le=12)
+
+    @model_validator(mode="after")
+    def fill_single_month_season(self):
+        if self.season_start is None and self.season_end is not None:
+            self.season_start = self.season_end
+        elif self.season_end is None and self.season_start is not None:
+            self.season_end = self.season_start
+        return self
+
+
+class AreaCreate(AreaBase):
+    polygon: list[list[float]]
+
+    @field_validator("polygon")
+    @classmethod
+    def check_polygon(cls, value: list[list[float]]) -> list[list[float]]:
+        return _validate_polygon(value)
+
+
+class AreaUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    category: PlantCategory | None = None
+    fruit_type: str | None = Field(default=None, min_length=1, max_length=80)
+    hazard: bool | None = None
+    species: str | None = Field(default=None, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
+    season_start: int | None = Field(default=None, ge=1, le=12)
+    season_end: int | None = Field(default=None, ge=1, le=12)
+    polygon: list[list[float]] | None = None
+
+    @field_validator("polygon")
+    @classmethod
+    def check_polygon(cls, value):
+        return None if value is None else _validate_polygon(value)
+
+
+class AreaOut(AreaBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    polygon: list[list[float]]
+    center_lat: float
+    center_lng: float
+    created_at: datetime
+    owner: UserOut
+    in_season: bool = False
+
+
 class ConfirmationCreate(BaseModel):
     status: Literal["present", "gone"]
 

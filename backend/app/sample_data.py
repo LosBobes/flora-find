@@ -9,7 +9,7 @@ database at startup, and the CLI ``seed.py`` can reuse the exact same data.
 from sqlalchemy.orm import Session
 
 from .auth import hash_password
-from .models import Tree, User
+from .models import Area, Tree, User, polygon_centroid
 from .plant_type_seed import backfill_plant_types
 
 ADMIN = {"email": "admin@florafind.rs", "username": "admin", "password": "admin1234"}
@@ -112,6 +112,27 @@ PLANTS = [
 ]
 
 
+# category, name, fruit_type, species, description, season_start, season_end, hazard,
+# polygon ([[lng, lat], ...], GeoJSON order, unclosed)
+AREAS = [
+    ("tree", "Košutnjak forest, oak & hornbeam", "Oak",
+     "Quercus", "Wooded hillside of oak and hornbeam popular for walks and mushroom foraging.",
+     None, None, False,
+     [[20.4290, 44.7620], [20.4470, 44.7635], [20.4520, 44.7530],
+      [20.4380, 44.7475], [20.4275, 44.7540]]),
+    ("flowerbed", "Rose parterre, Topčider park", "Roses",
+     "Rosa", "Formal rose beds around the old Topčider residence, in bloom all summer.",
+     5, 9, False,
+     [[20.4530, 44.7715], [20.4575, 44.7720], [20.4580, 44.7688],
+      [20.4535, 44.7683]]),
+    ("fruit_tree", "Riverside plum orchard, Ada Ciganlija", "Plum",
+     "Prunus domestica", "Rows of plum trees along the lake shore — šljiva ripening in late summer.",
+     8, 9, False,
+     [[20.4020, 44.7880], [20.4090, 44.7895], [20.4110, 44.7855],
+      [20.4045, 44.7840]]),
+]
+
+
 def get_or_create_user(db: Session, email, username, password, is_admin=False):
     user = db.query(User).filter(User.email == email).first()
     if user is None:
@@ -166,6 +187,26 @@ def seed_sample_plants(db: Session, *, force: bool = False) -> int:
                 season_start=season_start,
                 season_end=season_end,
                 hazard=hazard,
+                owner_id=contributor.id,
+            )
+        )
+
+    for (category, name, fruit_type, species, description,
+         season_start, season_end, hazard, polygon) in AREAS:
+        center_lat, center_lng = polygon_centroid(polygon)
+        db.add(
+            Area(
+                name=name,
+                category=category,
+                fruit_type=fruit_type,
+                species=species,
+                description=description,
+                season_start=season_start,
+                season_end=season_end,
+                hazard=hazard,
+                polygon=polygon,
+                center_lat=center_lat,
+                center_lng=center_lng,
                 owner_id=contributor.id,
             )
         )
