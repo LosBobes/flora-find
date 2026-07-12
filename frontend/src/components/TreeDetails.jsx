@@ -32,9 +32,10 @@ function SeasonStrip({ tree, monthsShort, accent }) {
           <div key={month} className="flex flex-1 flex-col items-center gap-0.5" title={label}>
             <span
               className={cn(
-                'h-4 w-full rounded-[3px] transition-colors',
+                'season-cell h-4 w-full rounded-[3px] transition-colors',
                 !on && 'bg-forest-100 dark:bg-white/10',
-                isNow && 'ring-1 ring-forest-900 dark:ring-white',
+                on && 'is-on',
+                isNow && 'is-now ring-1 ring-forest-900 dark:ring-white',
               )}
               style={on ? { backgroundColor: accent } : undefined}
             />
