@@ -358,18 +358,34 @@ export default function MapView({
   // Clicking a forest bubble eases the map to frame every plant inside it. A
   // fitBounds brings the whole cluster into view; a bubble whose members share a
   // point (identical coords) has no extent, so just zoom in a couple of levels.
+  //
+  // Clusters form in *screen space* (markers within a pixel radius merge), so a
+  // bubble can be made of plants that are geographically almost on top of each
+  // other once you're zoomed in. For such a bubble, fitting its tiny bounds would
+  // land at a zoom <= where we already are, so the click wouldn't zoom in and the
+  // bubble would stay clustered. Guard against that: if framing the bounds
+  // wouldn't actually push us in, fall back to a fixed zoom-in step so a click
+  // always makes progress toward splitting the group apart.
   const zoomToCluster = useCallback((cluster) => {
     const map = mapRef.current
     if (!map) return
+    const currentZoom = map.getZoom()
+    const stepIn = () =>
+      map.easeTo({ center: [cluster.lng, cluster.lat], zoom: Math.min(currentZoom + 2, 20), duration: 500 })
     const { minLng, minLat, maxLng, maxLat } = cluster.bounds
     if (maxLng - minLng < 1e-6 && maxLat - minLat < 1e-6) {
-      map.easeTo({ center: [cluster.lng, cluster.lat], zoom: Math.min(map.getZoom() + 2, 18), duration: 500 })
+      stepIn()
       return
     }
-    map.fitBounds(
+    const camera = map.cameraForBounds(
       [[minLng, minLat], [maxLng, maxLat]],
-      { padding: 90, maxZoom: 17, duration: 600 },
+      { padding: 90, maxZoom: 20 },
     )
+    if (camera && camera.zoom > currentZoom + 0.5) {
+      map.easeTo({ center: camera.center, zoom: camera.zoom, duration: 600 })
+    } else {
+      stepIn()
+    }
   }, [])
 
   const handleClick = useCallback(
