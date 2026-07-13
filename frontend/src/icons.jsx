@@ -224,6 +224,47 @@ export function PlantIcon({ tree, size = 24, className, title }) {
   )
 }
 
+// A "forest" bubble that stands in for a whole cluster of plants when the map is
+// zoomed out. A green disc with a little grove of trees — two conifers and a
+// leafy round tree over a ground line — drawn in a pale tint so a count badge
+// (rendered as HTML alongside it) reads clearly on top. Clicking it zooms into
+// the cluster's area. Size is driven by the caller so busier clusters look
+// bigger.
+export function ForestBubble({ size = 48, className, title }) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      role="img"
+      aria-label={title}
+    >
+      {title ? <title>{title}</title> : null}
+      <circle cx="24" cy="24" r="22.5" fill="#2f8f49" stroke="#fff" strokeWidth="2.4" />
+      {/* Soft top highlight for a little depth. */}
+      <ellipse cx="19" cy="15" rx="14" ry="9" fill="#43a35c" opacity="0.55" />
+      <g fill="#e4f5e8">
+        {/* Left conifer */}
+        <rect x="12.4" y="30.5" width="1.8" height="4.2" rx="0.7" />
+        <path d="M13.3 15.5 L18.3 24 H8.3 Z" />
+        <path d="M13.3 20 L19 29 H7.6 Z" />
+        {/* Right conifer */}
+        <rect x="33.8" y="30.5" width="1.8" height="4.2" rx="0.7" />
+        <path d="M34.7 17 L39 24.3 H30.4 Z" />
+        <path d="M34.7 21 L40 30 H29.4 Z" />
+        {/* Centre leafy tree, sitting a touch forward */}
+        <rect x="23.1" y="29" width="2" height="6" rx="0.9" />
+        <circle cx="24.1" cy="23.5" r="6.3" />
+        <circle cx="19.4" cy="26.2" r="4.1" />
+        <circle cx="28.8" cy="26.2" r="4.1" />
+      </g>
+      {/* Ground line to seat the grove. */}
+      <path d="M9 35 H39" stroke="#e4f5e8" strokeWidth="1.6" strokeLinecap="round" opacity="0.85" />
+    </svg>
+  )
+}
+
 // Status badges shown on list rows and in the detail card. Small self-contained
 // discs with a white glyph, meant to read at ~16-18px. Pass `title` for a
 // native tooltip and screen-reader label.

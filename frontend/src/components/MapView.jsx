@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Map, Layer, Marker, Popup, Source, useMap } from '@vis.gl/react-maplibre'
 import { AnimatePresence, motion } from 'motion/react'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { PlantIcon } from '../icons'
+import { PlantIcon, ForestBubble } from '../icons'
 import { plantColor } from '../fruitIcons'
+import { clusterTrees } from '../lib/cluster'
 import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { buildBasemapStyle, useMapSettings } from '../MapSettingsContext'
@@ -236,7 +237,7 @@ export default function MapView({
   areaDetails,
   children,
 }) {
-  const { name: plantName } = useI18n()
+  const { t, name: plantName } = useI18n()
   const { localized: localizedType } = usePlantTypes()
   const { theme, markerPx, showLabels, isDark } = useMapSettings()
   const mapStyle = useMemo(() => buildBasemapStyle(theme), [theme])
@@ -284,6 +285,11 @@ export default function MapView({
     return { type: 'FeatureCollection', features }
   }, [draftPolygon])
 
+  // Current map zoom + a handle to the live map, both used to cluster markers
+  // (see below) and to fly into a cluster's area when its bubble is clicked.
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM)
+  const mapRef = useRef(null)
+
   // Keep the popup mounted through its exit animation: `shownTree` lingers after
   // `selectedTree` clears until AnimatePresence reports the card has left.
   const [shownTree, setShownTree] = useState(null)
@@ -295,6 +301,7 @@ export default function MapView({
 
   const reportBounds = useCallback((event) => {
     const bounds = event.target.getBounds()
+    setZoom(event.target.getZoom())
     onBoundsChanged({
       north: bounds.getNorth(),
       south: bounds.getSouth(),
@@ -306,11 +313,38 @@ export default function MapView({
   // Keep the map locked to north-up: no rotation or pitch, ever.
   const handleLoad = useCallback((event) => {
     const map = event.target
+    mapRef.current = map
     map.dragRotate.disable()
     map.touchZoomRotate.disableRotation()
     map.keyboard.disableRotation()
     reportBounds(event)
   }, [reportBounds])
+
+  // Cluster nearby markers so a zoomed-out map shows tidy "forest" bubbles rather
+  // than an overlapping pile. The selected plant is held out so its marker (and
+  // its open popup) always stays visible, never swallowed into a bubble.
+  const clusterInput = useMemo(
+    () => (selectedTree ? trees.filter((tree) => tree.id !== selectedTree.id) : trees),
+    [trees, selectedTree],
+  )
+  const clusters = useMemo(() => clusterTrees(clusterInput, zoom), [clusterInput, zoom])
+
+  // Clicking a forest bubble eases the map to frame every plant inside it. A
+  // fitBounds brings the whole cluster into view; a bubble whose members share a
+  // point (identical coords) has no extent, so just zoom in a couple of levels.
+  const zoomToCluster = useCallback((cluster) => {
+    const map = mapRef.current
+    if (!map) return
+    const { minLng, minLat, maxLng, maxLat } = cluster.bounds
+    if (maxLng - minLng < 1e-6 && maxLat - minLat < 1e-6) {
+      map.easeTo({ center: [cluster.lng, cluster.lat], zoom: Math.min(map.getZoom() + 2, 18), duration: 500 })
+      return
+    }
+    map.fitBounds(
+      [[minLng, minLat], [maxLng, maxLat]],
+      { padding: 90, maxZoom: 17, duration: 600 },
+    )
+  }, [])
 
   const handleClick = useCallback(
     (event) => {
@@ -330,6 +364,53 @@ export default function MapView({
     },
     [drawingArea, addMode, onMapClick, onSelectArea],
   )
+
+  // A single plant marker: the coloured plant disc plus (optionally) its name
+  // label. Used both for lone plants and for the always-shown selected plant.
+  const renderTreeMarker = (tree) => {
+    const selected = selectedTree?.id === tree.id
+    const px = Math.round(selected ? markerPx * 1.3 : markerPx)
+    return (
+      <Marker
+        key={tree.id}
+        longitude={tree.lng}
+        latitude={tree.lat}
+        style={{ zIndex: selected ? 4 : 1 }}
+        onClick={(event) => {
+          event.originalEvent.stopPropagation()
+          onSelectTree(tree)
+        }}
+      >
+        <motion.div
+          className="flex cursor-pointer flex-col items-center"
+          initial={{ scale: 0.3, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+          whileHover={{ scale: 1.12 }}
+          title={`${plantName(tree.name)} (${localizedType(tree.fruit_type)})`}
+        >
+          <PlantIcon
+            tree={tree}
+            size={px}
+            className={cn(
+              'block drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]',
+              tree.hazard && 'rounded-full shadow-[0_0_0_3px_rgba(198,40,40,0.4)]',
+            )}
+          />
+          {showLabels && (
+            <span
+              className={cn(
+                'mt-1 max-w-[120px] truncate rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm',
+                isDark ? 'bg-forest-900/85 text-white' : 'bg-white/90 text-forest-900',
+              )}
+            >
+              {plantName(tree.name)}
+            </span>
+          )}
+        </motion.div>
+      </Marker>
+    )
+  }
 
   return (
     <Map
@@ -414,50 +495,47 @@ export default function MapView({
         </Popup>
       )}
 
-      {trees.map((tree) => {
-        const selected = selectedTree?.id === tree.id
-        const px = Math.round(selected ? markerPx * 1.3 : markerPx)
+      {/* Forest bubbles for multi-plant clusters: a grove glyph with a count,
+          clicked to zoom into the area and split them apart. */}
+      {clusters.map((cluster) => {
+        if (cluster.count === 1) return renderTreeMarker(cluster.trees[0])
+        // Grow the bubble with the count so denser groves read as bigger.
+        const px = Math.round(markerPx * (1.35 + Math.min(cluster.count, 100) / 100 * 0.75))
         return (
           <Marker
-            key={tree.id}
-            longitude={tree.lng}
-            latitude={tree.lat}
-            style={{ zIndex: selected ? 4 : 1 }}
+            key={cluster.id}
+            longitude={cluster.lng}
+            latitude={cluster.lat}
+            style={{ zIndex: 2 }}
             onClick={(event) => {
               event.originalEvent.stopPropagation()
-              onSelectTree(tree)
+              zoomToCluster(cluster)
             }}
           >
             <motion.div
-              className="flex cursor-pointer flex-col items-center"
+              className="relative flex cursor-pointer items-center justify-center"
               initial={{ scale: 0.3, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 320, damping: 20 }}
-              whileHover={{ scale: 1.12 }}
-              title={`${plantName(tree.name)} (${localizedType(tree.fruit_type)})`}
+              whileHover={{ scale: 1.1 }}
+              title={t('plantsCount', { count: cluster.count })}
             >
-              <PlantIcon
-                tree={tree}
+              <ForestBubble
                 size={px}
-                className={cn(
-                  'block drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]',
-                  tree.hazard && 'rounded-full shadow-[0_0_0_3px_rgba(198,40,40,0.4)]',
-                )}
+                title={t('plantsCount', { count: cluster.count })}
+                className="block drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
               />
-              {showLabels && (
-                <span
-                  className={cn(
-                    'mt-1 max-w-[120px] truncate rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm',
-                    isDark ? 'bg-forest-900/85 text-white' : 'bg-white/90 text-forest-900',
-                  )}
-                >
-                  {plantName(tree.name)}
-                </span>
-              )}
+              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[20px] items-center justify-center rounded-full border border-forest-600 bg-white px-1.5 py-0.5 text-[11px] font-bold leading-none text-forest-800 shadow-sm">
+                {cluster.count}
+              </span>
             </motion.div>
           </Marker>
         )
       })}
+
+      {/* The selected plant is excluded from clustering, so render it on its own
+          (with full selection styling) so its popup always has a marker. */}
+      {selectedTree && renderTreeMarker(selectedTree)}
 
       {userPosition && (
         <Marker longitude={userPosition.lng} latitude={userPosition.lat} style={{ zIndex: 2 }}>
