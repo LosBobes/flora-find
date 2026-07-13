@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { useI18n, LANGUAGES } from '../i18n'
 import { useAuth } from '../AuthContext'
 import { BrandMark } from '../icons'
@@ -70,22 +71,28 @@ function HelpButton({ onClick, label }) {
   )
 }
 
-export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpenProfile, hideOnMobile = false }) {
+export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpenProfile, placement }) {
   const { t } = useI18n()
   const { user, logout } = useAuth()
 
+  // While placing a plant on mobile the header morphs in place into a placement
+  // toolbar instead of being torn out of the layout. Keeping the same header
+  // shell (and height) means the map area below never reflows — so the map
+  // doesn't jump — and the wordmark row can cross-fade smoothly into the
+  // placement controls rather than cut to a differently-sized floating bar.
+  const placing = !!placement?.active
+
   return (
-    <header
-      className={cn(
-        'relative z-20 shrink-0 overflow-hidden border-b border-forest-100 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0e1f14]/80',
-        // While placing a plant on mobile the map's placement toolbar takes over
-        // the top of the screen, so collapse the wordmark header out of the way
-        // to reclaim its vertical space (desktop keeps it — the toolbar floats).
-        hideOnMobile && 'hidden md:block',
-      )}
-    >
+    <header className="relative z-20 shrink-0 overflow-hidden border-b border-forest-100 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0e1f14]/80">
       <Particles className="absolute inset-0 h-full w-full opacity-60" quantity={40} color="#43a047" />
-      <div className="relative flex items-center gap-3 px-3 py-2.5 md:px-5">
+      <div
+        className={cn(
+          'relative flex items-center gap-3 px-3 py-2.5 transition-opacity duration-300 md:px-5',
+          // On mobile fade the wordmark row out while the placement toolbar takes
+          // over; desktop always keeps it (the toolbar floats over the map there).
+          placing && 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto',
+        )}
+      >
         <div className="flex shrink-0 items-center gap-2">
           <span className="grid size-9 place-items-center rounded-xl bg-forest-600 shadow-glow ring-1 ring-inset ring-white/25">
             <BrandMark size={22} />
@@ -154,6 +161,69 @@ export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpe
           </div>
         </div>
       </div>
+
+      {/* Mobile placement toolbar: an absolutely-positioned overlay filling the
+          same header box, so it inherits the wordmark row's height exactly and
+          cross-fades in over it. Desktop keeps the wordmark row and floats its
+          own placement toolbar over the map, so this stays mobile-only. */}
+      <AnimatePresence>
+        {placing && (
+          <motion.div
+            key="placement"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="absolute inset-0 z-10 flex items-center gap-2 px-3 py-2.5 md:hidden"
+          >
+            <button
+              type="button"
+              onClick={placement.onCancel}
+              aria-label={t('cancelAdding')}
+              title={t('cancelAdding')}
+              className="grid size-9 shrink-0 place-items-center rounded-xl border border-red-200 bg-red-50 text-lg font-bold leading-none text-red-600 transition active:scale-95"
+            >
+              ×
+            </button>
+            <p className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight text-forest-700 dark:text-forest-100">
+              {placement.hasDraft ? t('dragPinHint') : t('clickToPlace')}
+            </p>
+            <button
+              type="button"
+              onClick={placement.onUseLocation}
+              disabled={placement.locating}
+              aria-label={t('useMyLocation')}
+              title={t('useMyLocation')}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full py-1.5 text-xs font-semibold transition active:scale-95 disabled:opacity-60',
+                // Once a pin exists the Confirm button needs the room, so this drops
+                // to an icon-only square; before that it's the primary labelled CTA.
+                placement.hasDraft
+                  ? 'grid size-9 place-items-center border border-forest-200 bg-white text-forest-700 dark:border-white/15 dark:bg-white/5 dark:text-forest-100'
+                  : 'gap-1.5 px-3 bg-forest-600 text-white',
+              )}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="10" r="3" />
+                <path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Z" />
+              </svg>
+              {!placement.hasDraft && (placement.locating ? t('locating') : t('useMyLocation'))}
+            </button>
+            {placement.hasDraft && (
+              <button
+                type="button"
+                onClick={placement.onConfirm}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-forest-600 px-3 py-1.5 text-xs font-semibold text-white shadow-glow transition active:scale-95"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                  <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {t('confirmSpot')}
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }
