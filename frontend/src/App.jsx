@@ -12,6 +12,7 @@ import PlantFormSheet from './components/PlantFormSheet'
 import ProfilePanel from './components/ProfilePanel'
 import AreaDetails from './components/AreaDetails'
 import TopNav from './components/TopNav'
+import { HeaderOverlayBar, OverlayIconButton } from './components/HeaderOverlayBar'
 import PlantList from './components/PlantList'
 import MapSettingsControl from './components/MapSettingsControl'
 import MobileBottomBar from './components/MobileBottomBar'
@@ -542,6 +543,64 @@ export default function App() {
   const visibleTrees = showPlants ? trees : []
   const visibleAreas = showAreas ? areas : []
 
+  // The mobile toolbar swapped into the top nav for whichever map action is in
+  // progress. Placing a plant takes precedence over drawing an area (they're
+  // mutually exclusive in practice); null keeps the plain wordmark header.
+  const placing = addMode && !placementConfirmed
+  const headerOverlay = placing ? (
+    <HeaderOverlayBar
+      onCancel={toggleAddMode}
+      cancelLabel={t('cancelAdding')}
+      hint={draftPosition ? t('dragPinHint') : t('clickToPlace')}
+    >
+      <OverlayIconButton
+        onClick={placeAtMyLocation}
+        label={t('useMyLocation')}
+        disabled={locating}
+        primary={!draftPosition}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <circle cx="12" cy="10" r="3" />
+          <path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Z" />
+        </svg>
+      </OverlayIconButton>
+      {draftPosition && (
+        <OverlayIconButton onClick={confirmPlacement} label={t('confirmSpot')} primary>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </OverlayIconButton>
+      )}
+    </HeaderOverlayBar>
+  ) : drawingArea ? (
+    <HeaderOverlayBar
+      onCancel={cancelDrawArea}
+      cancelLabel={t('cancel')}
+      hint={t('drawAreaProgress', { count: draftPolygon.length })}
+    >
+      <OverlayIconButton
+        onClick={undoDraftPoint}
+        label={t('undoPoint')}
+        disabled={draftPolygon.length === 0}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M9 14 4 9l5-5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4 9h11a5 5 0 0 1 0 10h-1" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </OverlayIconButton>
+      <OverlayIconButton
+        onClick={finishDrawArea}
+        label={t('finishArea')}
+        disabled={draftPolygon.length < 3}
+        primary
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+          <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </OverlayIconButton>
+    </HeaderOverlayBar>
+  ) : null
+
   return (
     <div className="flex h-full flex-col bg-forest-50 dark:bg-[#0e1f14]">
       <TopNav
@@ -550,14 +609,7 @@ export default function App() {
         onRegister={() => setAuthModal('register')}
         onHelp={() => setTourOpen(true)}
         onOpenProfile={openProfile}
-        placement={{
-          active: addMode && !placementConfirmed,
-          hasDraft: !!draftPosition,
-          locating,
-          onUseLocation: placeAtMyLocation,
-          onConfirm: confirmPlacement,
-          onCancel: toggleAddMode,
-        }}
+        overlay={headerOverlay}
       />
 
       <div className="relative flex min-h-0 flex-1">
@@ -688,7 +740,8 @@ export default function App() {
             )}
           </MapView>
 
-          {/* Drawing toolbar while placing an area's vertices. */}
+          {/* Drawing toolbar while placing an area's vertices. Desktop only: on
+              mobile the header morphs into this toolbar (see headerOverlay). */}
           <AnimatePresence>
             {drawingArea && (
               <motion.div
@@ -696,7 +749,7 @@ export default function App() {
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                className="absolute inset-x-3 top-3 z-40 mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
+                className="absolute inset-x-3 top-3 z-40 mx-auto hidden w-fit max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95 md:flex"
               >
                 <span className="px-1 text-xs font-medium text-forest-700 dark:text-forest-100">
                   {t('drawAreaProgress', { count: draftPolygon.length })}

@@ -240,6 +240,17 @@
     max-width: none !important;
     transform: none !important;
     z-index: 50 !important;
+    /* The card doesn't fill the whole sheet, so the full-screen wrapper would
+       otherwise swallow every tap over the map — you couldn't select another
+       marker while a popup was open. Make the wrapper click-through and re-arm
+       pointer events only on the actual card + close button below, so taps in
+       the empty area fall through to the markers/map. */
+    pointer-events: none !important;
+  }
+
+  .plant-popup-card,
+  .maplibregl-popup-close-button {
+    pointer-events: auto;
   }
 
   .maplibregl-popup-content,
