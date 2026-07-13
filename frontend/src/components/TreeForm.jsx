@@ -271,6 +271,9 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
             onChange={setFruitType}
             options={typeSelectOptions}
             placeholder={typeOptions.length ? t('selectTypePlaceholder') : t('noTypesYet')}
+            searchable={typeSelectOptions.length > 6}
+            searchPlaceholder={t('searchTypePlaceholder')}
+            noMatchLabel={t('noTypeMatch')}
           />
         </span>
       </label>

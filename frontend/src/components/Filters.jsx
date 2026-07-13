@@ -81,6 +81,9 @@ export default function Filters({
         value={fruitFilter}
         onChange={setFruitFilter}
         options={typeOptions}
+        searchable={typeOptions.length > 6}
+        searchPlaceholder={t('searchTypePlaceholder')}
+        noMatchLabel={t('noTypeMatch')}
       />
       <button
         type="button"

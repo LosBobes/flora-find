@@ -29,15 +29,50 @@ function Check() {
 
 // A styled, animated dropdown that replaces native <select>. Options are
 // [{ value, label, disabled }]. The menu renders in a portal at fixed
-// coordinates so it is never clipped by a scrolling parent panel.
-export function Select({ value, onChange, options, placeholder, className, ariaLabel }) {
+// coordinates so it is never clipped by a scrolling parent panel. Pass
+// `searchable` to add a filter box at the top of the menu — handy when a
+// category carries a long list of plant types.
+export function Select({
+  value,
+  onChange,
+  options,
+  placeholder,
+  className,
+  ariaLabel,
+  searchable = false,
+  searchPlaceholder = 'Search…',
+  noMatchLabel = 'No matches',
+}) {
   const [open, setOpen] = useState(false)
   const [rect, setRect] = useState(null)
+  const [query, setQuery] = useState('')
   const triggerRef = useRef(null)
   const panelRef = useRef(null)
+  const searchRef = useRef(null)
 
   const selected = options.find((o) => o.value === value && !o.disabled)
   const label = selected ? selected.label : placeholder ?? ''
+
+  // Filter by the typed query (case-insensitive, on the visible label). Only
+  // when searchable and something is typed; otherwise show everything.
+  const visibleOptions =
+    searchable && query.trim()
+      ? options.filter((opt) => String(opt.label).toLowerCase().includes(query.trim().toLowerCase()))
+      : options
+
+  // Clear the query each time the menu closes so the next open starts fresh,
+  // and focus the search box when it opens so the user can type immediately.
+  useEffect(() => {
+    if (!open) {
+      setQuery('')
+      return undefined
+    }
+    if (searchable) {
+      const id = requestAnimationFrame(() => searchRef.current?.focus())
+      return () => cancelAnimationFrame(id)
+    }
+    return undefined
+  }, [open, searchable])
 
   useLayoutEffect(() => {
     if (!open) return undefined
@@ -100,9 +135,33 @@ export function Select({ value, onChange, options, placeholder, className, ariaL
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.14, ease: 'easeOut' }}
             style={{ position: 'fixed', left: rect.left, top: rect.top, width: rect.width, zIndex: 60 }}
-            className="sd-menu max-h-64 overflow-y-auto rounded-xl border border-forest-100 bg-white p-1 shadow-card dark:border-white/10 dark:bg-[#16281d]"
+            className="sd-menu flex max-h-64 flex-col rounded-xl border border-forest-100 bg-white p-1 shadow-card dark:border-white/10 dark:bg-[#16281d]"
           >
-              {options.map((opt) => {
+            {searchable && (
+              <div className="sticky top-0 z-10 mb-1 bg-white p-1 dark:bg-[#16281d]">
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    // Enter picks the sole remaining match — quick keyboard flow.
+                    if (event.key === 'Enter' && visibleOptions.length === 1 && !visibleOptions[0].disabled) {
+                      event.preventDefault()
+                      onChange(visibleOptions[0].value)
+                      setOpen(false)
+                    }
+                  }}
+                  placeholder={searchPlaceholder}
+                  className="w-full rounded-lg border border-forest-100 bg-forest-50/60 px-2.5 py-1.5 text-sm text-forest-900 outline-none placeholder:text-forest-400 focus:border-forest-400 focus:ring-2 focus:ring-forest-200 dark:border-white/10 dark:bg-white/5 dark:text-forest-50"
+                />
+              </div>
+            )}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {visibleOptions.length === 0 && (
+                <p className="px-3 py-2 text-sm text-forest-400 dark:text-forest-500">{noMatchLabel}</p>
+              )}
+              {visibleOptions.map((opt) => {
                 const isSelected = opt.value === value
                 return (
                   <button
@@ -134,6 +193,7 @@ export function Select({ value, onChange, options, placeholder, className, ariaL
                   </button>
                 )
               })}
+            </div>
           </motion.div>,
           document.body,
         )}
