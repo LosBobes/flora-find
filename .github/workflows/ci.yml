@@ -5,8 +5,20 @@ on:
   push:
     branches: [main]
 
+# A newer push to the same branch/PR makes older in-flight runs obsolete;
+# cancel them so we don't burn runners on stale commits. Never cancel pushes
+# to main (each commit there is deployed, so every run matters).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Least privilege: CI only needs to read the checked-out code.
+permissions:
+  contents: read
+
 jobs:
   backend-tests:
+    name: Backend tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,6 +34,7 @@ jobs:
       - run: python -m pytest tests/ -q
 
   frontend-build:
+    name: Frontend build
     runs-on: ubuntu-latest
     defaults:
       run:

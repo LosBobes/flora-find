@@ -9,6 +9,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Serialize deploys. Overlapping runs race on the same docker compose project
+# and can leave a half-recreated container behind (see the recreate note
+# below). Queue new deploys instead of cancelling — the latest commit still
+# wins, but only after the in-flight deploy finishes cleanly.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+# The deploy runs entirely over SSH; it needs no GitHub API write access.
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy
