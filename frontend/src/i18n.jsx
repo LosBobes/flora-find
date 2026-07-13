@@ -113,6 +113,8 @@ const STRINGS = {
     plantType: 'Plant type',
     selectTypePlaceholder: 'Select a type…',
     noTypesYet: 'No types in this category yet.',
+    searchTypePlaceholder: 'Search types…',
+    noTypeMatch: 'No matching types',
     addNewType: 'Add a new type',
     newTypePanelTitle: 'New plant type',
     typeNameForLang: ({ language }) => `Name (${language})`,
@@ -202,6 +204,7 @@ const STRINGS = {
     dropPinHere: 'Drop pin here',
     locationPlaced: ({ acc }) => `Pin dropped at your location (±${acc} m). Drag it to fine-tune.`,
     dragPinHint: 'Tip: drag the pin on the map to place it exactly.',
+    confirmSpot: 'Confirm this spot',
     pinLocation: 'Pin location',
 
     // Profile / contribution catalog
@@ -365,6 +368,8 @@ const STRINGS = {
     plantType: 'Tip biljke',
     selectTypePlaceholder: 'Izaberi tip…',
     noTypesYet: 'Još nema tipova u ovoj kategoriji.',
+    searchTypePlaceholder: 'Pretraži tipove…',
+    noTypeMatch: 'Nema podudarnih tipova',
     addNewType: 'Dodaj novi tip',
     newTypePanelTitle: 'Novi tip biljke',
     typeNameForLang: ({ language }) => `Naziv (${language})`,
@@ -454,6 +459,7 @@ const STRINGS = {
     dropPinHere: 'Postavi oznaku ovde',
     locationPlaced: ({ acc }) => `Oznaka postavljena na tvoju lokaciju (±${acc} m). Prevuci je za precizno podešavanje.`,
     dragPinHint: 'Savet: prevuci oznaku na mapi da je postaviš tačno.',
+    confirmSpot: 'Potvrdi ovo mesto',
     pinLocation: 'Lokacija oznake',
 
     // Profile / contribution catalog

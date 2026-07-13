@@ -204,17 +204,36 @@ function BoxSelect({ active, onComplete, onCancel }) {
   return null
 }
 
-function DraftPin() {
+// The pin dropped while placing a plant. It bobs up and down to signal it's
+// grabbable — "drag me onto the exact spot" — and holds still while actually
+// being dragged so placement stays precise. A soft pulsing ring under the tip
+// marks the ground point the marker is anchored to.
+function DraftPin({ dragging = false }) {
   return (
-    <svg width="30" height="42" viewBox="0 0 30 42" className="draft-pin cursor-grab active:cursor-grabbing">
-      <path
-        d="M15 0C6.7 0 0 6.7 0 15c0 11 15 27 15 27s15-16 15-27C30 6.7 23.3 0 15 0z"
-        fill="#2e7d32"
-        stroke="#1b5e20"
-        strokeWidth="1.5"
-      />
-      <circle cx="15" cy="15" r="5.5" fill="#fff" />
-    </svg>
+    <div className="draft-pin-wrap cursor-grab active:cursor-grabbing">
+      {/* Ground marker: a pulsing halo at the anchored coordinate. */}
+      <span className={cn('draft-pin-pulse', dragging && 'is-dragging')} aria-hidden />
+      <motion.svg
+        width="30"
+        height="42"
+        viewBox="0 0 30 42"
+        className="draft-pin relative"
+        animate={dragging ? { y: 0 } : { y: [0, -7, 0] }}
+        transition={
+          dragging
+            ? { duration: 0.15 }
+            : { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }
+        }
+      >
+        <path
+          d="M15 0C6.7 0 0 6.7 0 15c0 11 15 27 15 27s15-16 15-27C30 6.7 23.3 0 15 0z"
+          fill="#2e7d32"
+          stroke="#1b5e20"
+          strokeWidth="1.5"
+        />
+        <circle cx="15" cy="15" r="5.5" fill="#fff" />
+      </motion.svg>
+    </div>
   )
 }
 
@@ -292,6 +311,10 @@ export default function MapView({
   // (see below) and to fly into a cluster's area when its bubble is clicked.
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const mapRef = useRef(null)
+
+  // While the draft pin is actively being dragged, hold its bob animation so
+  // the tip sits exactly under the pointer for precise placement.
+  const [draggingDraft, setDraggingDraft] = useState(false)
 
   // Keep the popup mounted through its exit animation: `shownTree` lingers after
   // `selectedTree` clears until AnimatePresence reports the card has left.
@@ -553,9 +576,13 @@ export default function MapView({
           anchor="bottom"
           style={{ zIndex: 3 }}
           draggable
-          onDragEnd={(event) => onDraftMove?.({ lat: event.lngLat.lat, lng: event.lngLat.lng })}
+          onDragStart={() => setDraggingDraft(true)}
+          onDragEnd={(event) => {
+            setDraggingDraft(false)
+            onDraftMove?.({ lat: event.lngLat.lat, lng: event.lngLat.lng })
+          }}
         >
-          <DraftPin />
+          <DraftPin dragging={draggingDraft} />
         </Marker>
       )}
 

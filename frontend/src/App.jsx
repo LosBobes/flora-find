@@ -88,6 +88,11 @@ export default function App() {
   // Restore a persisted draft pin (if any) so add-mode survives an app switch.
   const [addMode, setAddMode] = useState(() => loadDraftPosition() !== null)
   const [draftPosition, setDraftPosition] = useState(loadDraftPosition)
+  // A pin is placed but not yet locked in: the user first sees it on the map and
+  // can drag it (or re-run "use my location") before confirming the spot, which
+  // is what finally opens the add-plant form. Keeps the form from covering the
+  // map before the location is settled — the mis-placement users hit on mobile.
+  const [placementConfirmed, setPlacementConfirmed] = useState(false)
   const [editingTree, setEditingTree] = useState(null)
   const [editingArea, setEditingArea] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -182,6 +187,12 @@ export default function App() {
     } catch {
       // Storage may be unavailable (private mode); persistence is best-effort.
     }
+  }, [addMode, draftPosition])
+
+  // Placement is "unconfirmed" again the moment the pin is cleared or add-mode
+  // ends, so the confirm step reappears next time a pin is dropped.
+  useEffect(() => {
+    if (!addMode || !draftPosition) setPlacementConfirmed(false)
   }, [addMode, draftPosition])
 
   // First-visit onboarding: launch the interactive tour once the layout has
@@ -327,6 +338,11 @@ export default function App() {
   // several plants sit close together along a path.
   function handleDraftMove(latLng) {
     setDraftPosition(latLng)
+  }
+
+  // Lock in the pin's current spot and open the add-plant form.
+  function confirmPlacement() {
+    if (draftPosition) setPlacementConfirmed(true)
   }
 
   // Drop the draft pin at the device's GPS position (high accuracy). Placing a
@@ -705,31 +721,52 @@ export default function App() {
           </AnimatePresence>
 
           {/* While placing a plant: a GPS shortcut + drag hint so pins land on the
-              exact spot instead of an eyeballed tap. */}
+              exact spot instead of an eyeballed tap. Once a pin is down, a
+              "Confirm this spot" button locks it in and opens the form — so the
+              user always sees and can refine the location on the map first. */}
           <AnimatePresence>
-            {addMode && (
+            {addMode && !placementConfirmed && (
               <motion.div
                 key="place-toolbar"
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                className="absolute inset-x-3 top-3 z-30 mx-auto flex w-fit max-w-full flex-col items-center gap-1.5 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
+                className="absolute inset-x-3 top-3 z-30 mx-auto flex w-fit max-w-full flex-col items-center gap-2 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
               >
-                <button
-                  type="button"
-                  onClick={placeAtMyLocation}
-                  disabled={locating}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-forest-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-forest-700 disabled:opacity-60"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <circle cx="12" cy="10" r="3" />
-                    <path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Z" />
-                  </svg>
-                  {locating ? t('locating') : t('useMyLocation')}
-                </button>
                 <span className="px-1 text-center text-[11px] font-medium leading-tight text-forest-600 dark:text-forest-200">
                   {draftPosition ? t('dragPinHint') : t('clickToPlace')}
                 </span>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={placeAtMyLocation}
+                    disabled={locating}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition disabled:opacity-60',
+                      draftPosition
+                        ? 'border border-forest-200 bg-white text-forest-700 hover:bg-forest-50 dark:border-white/15 dark:bg-white/5 dark:text-forest-100 dark:hover:bg-white/10'
+                        : 'bg-forest-600 text-white hover:bg-forest-700',
+                    )}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <circle cx="12" cy="10" r="3" />
+                      <path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Z" />
+                    </svg>
+                    {locating ? t('locating') : t('useMyLocation')}
+                  </button>
+                  {draftPosition && (
+                    <button
+                      type="button"
+                      onClick={confirmPlacement}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-forest-600 px-4 py-1.5 text-sm font-semibold text-white shadow-glow transition hover:bg-forest-700"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                        <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {t('confirmSpot')}
+                    </button>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -743,7 +780,7 @@ export default function App() {
             {/* The add/edit plant form gets its own full-viewport sheet on mobile
                 (a standalone scroll surface — no map or bottom bar behind it to
                 catch a stray swipe); on desktop it stays a floating card. */}
-            {addMode && draftPosition && (
+            {addMode && draftPosition && placementConfirmed && (
               <PlantFormSheet
                 key="add-form"
                 title={t('registerPlant')}
