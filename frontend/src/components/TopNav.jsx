@@ -9,11 +9,14 @@ import { cn } from '../lib/utils'
 // across every few seconds (an overlaid copy clipped to a moving white band).
 function Wordmark() {
   return (
-    <span className="relative inline-block text-xl font-extrabold tracking-tight text-forest-700 dark:text-forest-100">
+    <span className="app-wordmark relative inline-block text-xl font-extrabold tracking-tight text-forest-700 dark:text-forest-100">
       FloraFind
+      {/* Glossy white shine sweep. Suppressed under the Stardew skin (styles.css),
+          where a moving gloss fights the flat pixel-art look — the theme swaps in
+          a carved wooden-sign emboss on the base text instead. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 animate-logo-shine bg-gradient-to-r from-transparent via-white to-transparent bg-clip-text bg-no-repeat text-transparent [background-position:-60px_0] [background-size:60px_100%]"
+        className="wordmark-shine pointer-events-none absolute inset-0 animate-logo-shine bg-gradient-to-r from-transparent via-white to-transparent bg-clip-text bg-no-repeat text-transparent [background-position:-60px_0] [background-size:60px_100%]"
       >
         FloraFind
       </span>
