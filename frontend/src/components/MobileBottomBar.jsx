@@ -7,16 +7,35 @@ import Drawer from './Drawer'
 import PlantList from './PlantList'
 import { cn } from '../lib/utils'
 
+// Signature FloraFind glyphs — the nav echoes the app's botanical identity
+// (the leaf BrandMark and hand-drawn plant markers) instead of a generic stroke
+// set: "add" is a sprouting leaf, "near me" is a map pin cradling a seedling,
+// and "map settings" is a folded field map. Drawn in a 24x24 box, stroke-only so
+// they inherit currentColor and read at ~22px.
 const ICONS = {
-  add: <path d="M12 5v14M5 12h14" strokeLinecap="round" />,
-  location: (
+  // Add a plant: a leaf with a "+" of new growth beside it.
+  add: (
     <>
-      <circle cx="12" cy="10" r="3" />
-      <path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Z" />
+      <path d="M14 4C8 4 4.5 7.7 4.5 13.8 10.5 13.8 14 10.1 14 4Z" strokeLinejoin="round" />
+      <path d="M6.6 12.9C9 10.3 11.1 7.7 12.7 5.4" strokeLinecap="round" />
+      <path d="M18 5.2v4.4M15.8 7.4h4.4" strokeLinecap="round" />
     </>
   ),
-  palette: (
-    <path d="M12 2a10 10 0 1 0 10 10c0-2-2-2.5-3.5-2.5H16a2 2 0 0 1-1.5-3.3A2 2 0 0 0 12 2Z" />
+  // Near me: a map pin cradling a two-leaf seedling.
+  location: (
+    <>
+      <path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Z" strokeLinejoin="round" />
+      <path d="M12 13.6V8.6" strokeLinecap="round" />
+      <path d="M12 10.6C10.6 10.8 9.6 10 9.3 8.5 10.8 8.3 11.8 9.1 12 10.6Z" strokeLinejoin="round" />
+      <path d="M12 9.3C12.2 8 13.1 7.3 14.5 7.4 14.4 8.8 13.5 9.5 12 9.3Z" strokeLinejoin="round" />
+    </>
+  ),
+  // Map settings: a folded field map.
+  map: (
+    <>
+      <path d="M9 4 3.5 6v13.5L9 17.5l6 2 5.5-2V4l-5.5 2Z" strokeLinejoin="round" />
+      <path d="M9 4v13.5M15 6v13.5" strokeLinecap="round" />
+    </>
   ),
   sliders: (
     <>
@@ -361,7 +380,7 @@ export default function MobileBottomBar({
               />
             )}
             <BarButton
-              name="palette"
+              name="map"
               label={t('mapSettings')}
               active={panel === 'settings'}
               onClick={() => toggle('settings')}
