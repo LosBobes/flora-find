@@ -550,7 +550,14 @@ export default function App() {
         onRegister={() => setAuthModal('register')}
         onHelp={() => setTourOpen(true)}
         onOpenProfile={openProfile}
-        hideOnMobile={addMode && !placementConfirmed}
+        placement={{
+          active: addMode && !placementConfirmed,
+          hasDraft: !!draftPosition,
+          locating,
+          onUseLocation: placeAtMyLocation,
+          onConfirm: confirmPlacement,
+          onCancel: toggleAddMode,
+        }}
       />
 
       <div className="relative flex min-h-0 flex-1">
@@ -724,7 +731,9 @@ export default function App() {
           {/* While placing a plant: a GPS shortcut + drag hint so pins land on the
               exact spot instead of an eyeballed tap. Once a pin is down, a
               "Confirm this spot" button locks it in and opens the form — so the
-              user always sees and can refine the location on the map first. */}
+              user always sees and can refine the location on the map first.
+              Desktop only: on mobile the header itself morphs into the placement
+              toolbar (see TopNav) so the map below never reflows. */}
           <AnimatePresence>
             {addMode && !placementConfirmed && (
               <motion.div
@@ -732,7 +741,7 @@ export default function App() {
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                className="absolute inset-x-3 top-3 z-30 mx-auto flex w-fit max-w-full flex-col items-center gap-2 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95"
+                className="absolute inset-x-3 top-3 z-30 mx-auto hidden w-fit max-w-full flex-col items-center gap-2 rounded-2xl border border-forest-100 bg-white/95 px-3 py-2 shadow-card backdrop-blur dark:border-white/10 dark:bg-[#12241a]/95 md:flex"
               >
                 <span className="px-1 text-center text-[11px] font-medium leading-tight text-forest-600 dark:text-forest-200">
                   {draftPosition ? t('dragPinHint') : t('clickToPlace')}
@@ -847,7 +856,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="pointer-events-none absolute bottom-24 left-1/2 z-40 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-2xl bg-forest-700 px-5 py-2.5 text-center text-sm font-medium text-white shadow-card md:bottom-6"
+                className="pointer-events-none absolute bottom-[calc(9.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-2xl bg-forest-700 px-5 py-2.5 text-center text-sm font-medium text-white shadow-card md:bottom-6"
               >
                 {notice}
               </motion.div>
