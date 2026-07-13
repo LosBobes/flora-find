@@ -391,11 +391,28 @@ export default function App() {
     api.fruitTypes(categoryFilter || undefined).then(setFruitTypes).catch(() => {})
   }
 
-  async function handleUpdate(payload) {
-    const updated = await api.updateTree(editingTree.id, payload)
+  async function handleUpdate(payload, newPhotos = [], removedPhotoIds = []) {
+    const treeId = editingTree.id
+    const updated = await api.updateTree(treeId, payload)
+    let photos = (updated.photos ?? []).filter((photo) => !removedPhotoIds.includes(photo.id))
+    let message = t('plantUpdated')
+    for (const photoId of removedPhotoIds) {
+      try {
+        await api.deletePhoto(treeId, photoId)
+      } catch (err) {
+        message = t('photoUploadFailed', { message: err.message })
+      }
+    }
+    if (newPhotos.length) {
+      try {
+        photos = [...photos, ...(await api.uploadPhotos(treeId, newPhotos))]
+      } catch (err) {
+        message = t('photoUploadFailed', { message: err.message })
+      }
+    }
     setEditingTree(null)
-    setSelectedTree(updated)
-    showNotice(t('plantUpdated'))
+    setSelectedTree({ ...updated, photos })
+    showNotice(message)
     refreshTrees()
   }
 
@@ -633,7 +650,13 @@ export default function App() {
               <TreeDetails
                 tree={selectedTree}
                 currentUser={user}
-                onEdit={() => setEditingTree(selectedTree)}
+                onEdit={() => {
+                  // Close the map popup so the full-screen edit sheet is the only
+                  // surface up (mirrors the area-edit flow); otherwise the popup
+                  // can paint over the sheet and hide it.
+                  setSelectedTree(null)
+                  setEditingTree(selectedTree)
+                }}
                 onDelete={handleDelete}
                 onConfirm={handleConfirm}
                 onOpenProfile={openProfile}
