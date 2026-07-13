@@ -70,12 +70,20 @@ function HelpButton({ onClick, label }) {
   )
 }
 
-export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpenProfile }) {
+export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpenProfile, hideOnMobile = false }) {
   const { t } = useI18n()
   const { user, logout } = useAuth()
 
   return (
-    <header className="relative z-20 shrink-0 overflow-hidden border-b border-forest-100 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0e1f14]/80">
+    <header
+      className={cn(
+        'relative z-20 shrink-0 overflow-hidden border-b border-forest-100 bg-white/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0e1f14]/80',
+        // While placing a plant on mobile the map's placement toolbar takes over
+        // the top of the screen, so collapse the wordmark header out of the way
+        // to reclaim its vertical space (desktop keeps it — the toolbar floats).
+        hideOnMobile && 'hidden md:block',
+      )}
+    >
       <Particles className="absolute inset-0 h-full w-full opacity-60" quantity={40} color="#43a047" />
       <div className="relative flex items-center gap-3 px-3 py-2.5 md:px-5">
         <div className="flex shrink-0 items-center gap-2">
