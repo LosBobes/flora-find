@@ -36,6 +36,9 @@ function PanToSelected({ tree }) {
   const { current: map } = useMap()
   useEffect(() => {
     if (!map || !tree) return
+    // On phones the popup opens as a full-screen sheet (see styles.css), so there
+    // is no marker-anchored card to nudge into view — skip the measure/ease.
+    if (window.matchMedia('(max-width: 767px)').matches) return
     const m = map.getMap ? map.getMap() : map
     let raf = 0
     let tries = 0
