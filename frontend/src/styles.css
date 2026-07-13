@@ -94,6 +94,10 @@
 
 .draft-pin {
   display: block;
+  /* The teardrop path runs flush to the viewBox edges (x=0..30), so the stroke
+     and the drop-shadow of those side edges would be sheared into a hard square
+     by the SVG's default overflow:hidden. Let them spill past the box. */
+  overflow: visible;
   filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
 }
 
@@ -433,6 +437,19 @@
 .theme-stardew .beam-ring,
 .theme-stardew .animate-shimmer-slide {
   display: none !important;
+}
+
+/* The wordmark's sweeping white gloss reads as glassy/modern and fights the flat
+   pixel-art skin. Drop the sweep and carve the letters into the sign instead: a
+   cream top bevel + dark lower shadow so "FloraFind" looks stamped into wood. */
+.theme-stardew .wordmark-shine {
+  display: none !important;
+}
+.theme-stardew .app-wordmark {
+  color: var(--sd-ink) !important;
+  text-shadow:
+    0 1px 0 var(--sd-wood-hi),
+    0 2px 2px rgba(74, 42, 15, 0.35);
 }
 
 /* --- Stardew menu buttons -------------------------------------------------
