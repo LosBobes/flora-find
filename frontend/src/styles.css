@@ -342,6 +342,14 @@
 .theme-stardew .text-forest-800,
 .theme-stardew .text-forest-900 { color: var(--sd-ink) !important; }
 
+/* Toasts/notices are the one surface that carries `text-white` AND `.shadow-card`
+   on the same element: in the light/dark themes they're a solid forest-green pill,
+   but the `.shadow-card` skin repaints that pill as a cream Stardew board, leaving
+   white copy floating illegibly on cream. Retint it to cocoa ink to match every
+   other board. White text on green button planks lives on `button` selectors with
+   higher specificity + `!important`, so it stays white. */
+.theme-stardew .shadow-card.text-white { color: var(--sd-ink) !important; }
+
 /* Headings pick up a touch more weight so the pixel font reads as chunky. */
 .theme-stardew h1,
 .theme-stardew h2,
