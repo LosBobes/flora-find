@@ -8,7 +8,12 @@ import { ShimmerButton } from '../ui/shimmer-button'
 import { Select } from '../ui/select'
 import PlantIdentifier from './PlantIdentifier'
 import { fieldInput, labelText, btnGhost, btnPrimary, btnSmall } from '../ui/form'
+import { characteristicsForType } from '../lib/plantCharacteristics'
 import { cn } from '../lib/utils'
+
+// Order categories the way the picker tiles do, so the (now cross-category) type
+// dropdown groups fruit trees, then trees, then shrubs… instead of a random mix.
+const CATEGORY_ORDER = Object.fromEntries(PLANT_CATEGORIES.map((entry, i) => [entry.value, i]))
 
 const MAX_PHOTOS = 3
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp'
@@ -32,7 +37,7 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
   const isArea = variant === 'area'
   const { t, lang, months } = useI18n()
   const { user } = useAuth()
-  const { byCategory, addType } = usePlantTypes()
+  const { types, byCategory, addType } = usePlantTypes()
 
   const [category, setCategory] = useState(initial?.category ?? 'fruit_tree')
   const [name, setName] = useState(initial?.name ?? '')
@@ -49,6 +54,9 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
   const [removedPhotoIds, setRemovedPhotoIds] = useState([])
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
+  // True once picking a known type auto-filled category/season/hazard, so we can
+  // show a gentle "we filled this in, tweak if needed" note.
+  const [prefilled, setPrefilled] = useState(false)
 
   // "Add a new type" panel — open to any signed-in user.
   const [addingType, setAddingType] = useState(false)
@@ -61,7 +69,6 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
   const isFruit = category === 'fruit_tree'
   const isFlowerbed = category === 'flowerbed'
   const isFungi = category === 'fungi'
-  const typeOptions = byCategory(category)
 
   // Mirrors the shape the map marker / list icon expect, so the preview shows
   // exactly the artwork this plant will get once saved.
@@ -71,10 +78,20 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
     value: entry.value,
     label: t(entry.labelKey),
   }))
-  const typeSelectOptions = typeOptions.map((type) => ({
-    value: type.names.en,
-    label: type.names[lang] ?? type.names.en,
-  }))
+  // The type picker now spans every category (name → type flow): the chosen type
+  // is what tells us the category, not the other way round. Sort by category order
+  // then label so related types sit together in the dropdown.
+  const typeSelectOptions = useMemo(
+    () =>
+      [...types]
+        .sort(
+          (a, b) =>
+            (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99) ||
+            (a.names[lang] ?? a.names.en).localeCompare(b.names[lang] ?? b.names.en),
+        )
+        .map((type) => ({ value: type.names.en, label: type.names[lang] ?? type.names.en })),
+    [types, lang],
+  )
   const monthOptions = (firstLabel) => [
     { value: '', label: firstLabel },
     ...months.map((month, index) => ({ value: index + 1, label: month })),
@@ -85,6 +102,27 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
     const stillValid = byCategory(value).some((type) => type.names.en === fruitType)
     if (!stillValid) setFruitType('')
     setAddingType(false)
+    setPrefilled(false)
+  }
+
+  // Picking a type is the primary step now: derive its category from the type
+  // record and, when we recognise the type, pre-fill the season/hazard/species so
+  // the user rarely has to touch them. Everything stays editable — season and
+  // hazard follow the type (the user just chose it); species only fills when
+  // blank so a hand-typed cultivar isn't clobbered.
+  function handleTypeChange(value) {
+    setFruitType(value)
+    const picked = types.find((type) => type.names.en === value)
+    if (picked) setCategory(picked.category)
+    const info = characteristicsForType(value)
+    if (info) {
+      if (info.category) setCategory(info.category)
+      if (info.season_start != null) setSeasonStart(info.season_start)
+      if (info.season_end != null) setSeasonEnd(info.season_end)
+      setHazard(Boolean(info.hazard))
+      if (info.species && !species.trim()) setSpecies(info.species)
+    }
+    setPrefilled(Boolean(info))
   }
 
   function handlePhotosChange(event) {
@@ -209,6 +247,50 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
         </div>
       </div>
 
+      {/* Don't know what it is? Let a photo do the identifying and pre-fill the
+          form. Only on new plants (not areas, not edits) since it also attaches
+          the identified photo. */}
+      {!initial && !isArea && <PlantIdentifier onApply={handleIdentified} />}
+
+      {/* Name first, then type — picking a known type auto-fills the rest. */}
+      <label className={labelText}>
+        {t('name')}
+        <input
+          className={fieldInput}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder={t(`namePlaceholder_${category}`)}
+          maxLength={120}
+          required
+          autoFocus
+        />
+      </label>
+
+      <label className={labelText}>
+        {isFruit ? t('fruit') : t('plantType')}
+        <span className="mt-1 block">
+          <Select
+            value={fruitType}
+            onChange={handleTypeChange}
+            options={typeSelectOptions}
+            placeholder={typeSelectOptions.length ? t('selectTypePlaceholder') : t('noTypesYet')}
+            searchable={typeSelectOptions.length > 6}
+            searchPlaceholder={t('searchTypePlaceholder')}
+            noMatchLabel={t('noTypeMatch')}
+          />
+        </span>
+      </label>
+
+      {/* We recognised the type and pre-filled category/season/hazard/species. */}
+      {prefilled && (
+        <p className="flex items-start gap-2 rounded-xl border border-forest-200 bg-forest-50 px-3 py-2 text-xs font-medium text-forest-700 dark:border-forest-500/25 dark:bg-forest-500/10 dark:text-forest-200">
+          <span aria-hidden className="text-sm leading-none">✨</span>
+          {t('autoFilledHint')}
+        </p>
+      )}
+
+      {/* Category is normally derived from the type above; the tiles stay as an
+          override (and the only way to set it for a brand-new custom type). */}
       <div>
         <span className={labelText}>{t('category')}</span>
         <div className="mt-1.5 grid grid-cols-3 gap-2">
@@ -244,39 +326,6 @@ export default function TreeForm({ position, initial, onSubmit, onCancel, varian
           {t('ephemeralHint')}
         </p>
       )}
-
-      {/* Don't know what it is? Let a photo do the identifying and pre-fill the
-          form. Only on new plants (not areas, not edits) since it also attaches
-          the identified photo. */}
-      {!initial && !isArea && <PlantIdentifier onApply={handleIdentified} />}
-
-      <label className={labelText}>
-        {t('name')}
-        <input
-          className={fieldInput}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder={t(`namePlaceholder_${category}`)}
-          maxLength={120}
-          required
-          autoFocus
-        />
-      </label>
-
-      <label className={labelText}>
-        {isFruit ? t('fruit') : t('plantType')}
-        <span className="mt-1 block">
-          <Select
-            value={fruitType}
-            onChange={setFruitType}
-            options={typeSelectOptions}
-            placeholder={typeOptions.length ? t('selectTypePlaceholder') : t('noTypesYet')}
-            searchable={typeSelectOptions.length > 6}
-            searchPlaceholder={t('searchTypePlaceholder')}
-            noMatchLabel={t('noTypeMatch')}
-          />
-        </span>
-      </label>
 
       {/* Any signed-in user can extend the vocabulary; they must name it in every language. */}
       {user && !addingType && (
