@@ -57,13 +57,13 @@ export default function AreaDetails({ area, currentUser, onEdit, onDelete }) {
     : null
 
   return (
-    <div className="relative w-[272px] max-w-[82vw] overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a]">
+    <div className="relative flex max-h-[calc(100dvh-12rem)] w-[272px] max-w-[82vw] flex-col overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a] md:max-h-[calc(100dvh-7rem)]">
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-1"
+        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-1"
         style={{ backgroundColor: accent }}
       />
-      <div className="p-4 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-3">
         <h3 className="mb-1.5 flex items-start gap-2 pr-5 text-base font-bold leading-snug text-forest-900 dark:text-forest-50">
           <PlantIcon tree={area} size={26} className="mt-0.5 shrink-0" />
           <span className="min-w-0 flex-1 break-words">{plantName(area.name)}</span>
@@ -131,7 +131,7 @@ export default function AreaDetails({ area, currentUser, onEdit, onDelete }) {
       </div>
 
       {isOwner && (
-        <div className="border-t border-forest-100 bg-forest-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+        <div className="shrink-0 border-t border-forest-100 bg-forest-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
           <div className="grid grid-cols-2 gap-2">
             <button
               className="inline-flex items-center justify-center rounded-xl border border-forest-200 bg-white px-3 py-1.5 text-xs font-medium text-forest-700 transition hover:bg-forest-50 dark:border-white/15 dark:bg-white/5 dark:text-forest-100 dark:hover:bg-white/10"

@@ -98,7 +98,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
     : null
 
   return (
-    <div className="relative w-[272px] max-w-[82vw] overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a]">
+    <div className="relative flex max-h-[calc(100dvh-12rem)] w-[272px] max-w-[82vw] flex-col overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a] md:max-h-[calc(100dvh-7rem)]">
       <motion.span
         aria-hidden
         className="pointer-events-none absolute inset-0 z-10 rounded-2xl"
@@ -114,7 +114,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
           background: `conic-gradient(from var(--beam-angle), ${accent}00 0deg, ${accent}00 300deg, ${accent}99 338deg, #ffffff 356deg, ${accent}00 360deg)`,
         }}
       />
-      <div className="p-4 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-3">
         <h3 className="mb-1.5 flex items-start gap-2 pr-5 text-base font-bold leading-snug text-forest-900 dark:text-forest-50">
           <PlantIcon tree={tree} size={26} className="mt-0.5 shrink-0" />
           <span className="min-w-0 flex-1 break-words">{plantName(tree.name)}</span>
@@ -241,7 +241,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
         </p>
       </div>
 
-      <div className="border-t border-forest-100 bg-forest-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+      <div className="shrink-0 border-t border-forest-100 bg-forest-50/70 px-4 py-3 dark:border-white/10 dark:bg-white/5">
         <div className="grid grid-cols-2 gap-2">
           <button
             className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-forest-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-forest-700 active:scale-[0.97]"
