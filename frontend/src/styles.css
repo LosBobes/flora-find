@@ -123,12 +123,35 @@
   box-shadow: none;
 }
 
+/* Exit button: a proper circular control — bigger than MapLibre's bare glyph
+   and skinned per theme (light / dark / Stardew) so it reads as a real "close"
+   affordance. Sits above the card's beam overlays (z-index 30). */
 .maplibregl-popup-close-button {
-  right: 8px;
-  top: 6px;
-  font-size: 20px;
-  color: #4a5a4a;
-  z-index: 2;
+  right: 10px;
+  top: 10px;
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(20, 40, 25, 0.08);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #2f3e2f;
+  font-size: 26px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: background 0.15s ease, transform 0.1s ease;
+  z-index: 30;
+}
+
+.maplibregl-popup-close-button:hover {
+  background: #ffffff;
+}
+
+.maplibregl-popup-close-button:active {
+  transform: scale(0.9);
 }
 
 .maplibregl-popup-tip {
@@ -142,7 +165,63 @@
 }
 
 .dark .maplibregl-popup-close-button {
-  color: #b7c9bb;
+  background: rgba(24, 40, 30, 0.92);
+  color: #cfe3d3;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.dark .maplibregl-popup-close-button:hover {
+  background: #1e3226;
+}
+
+/* On phones the detail popup fills the screen. MapLibre normally pins the card
+   to its marker with a tip, but on a small viewport a floating card can't fit —
+   so override the marker-anchored positioning into a full-screen sheet. The
+   card (TreeDetails / AreaDetails) is already a flex column: header + scrollable
+   body + pinned action buttons, which now span the whole screen. */
+@media (max-width: 767px) {
+  .maplibregl-popup {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    transform: none !important;
+    z-index: 50 !important;
+  }
+
+  .maplibregl-popup-content,
+  .maplibregl-popup-content > div {
+    height: 100%;
+    width: 100%;
+  }
+
+  .maplibregl-popup-tip {
+    display: none !important;
+  }
+
+  .plant-popup-card {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  /* A rotating beam border around the whole screen is too much — drop it. */
+  .plant-popup-card .beam-ring {
+    display: none !important;
+  }
+
+  /* A bigger, thumb-friendly exit, clear of any top notch. */
+  .maplibregl-popup-close-button {
+    top: max(12px, env(safe-area-inset-top));
+    right: 12px;
+    width: 42px;
+    height: 42px;
+    font-size: 32px;
+  }
 }
 
 .maplibregl-ctrl-attrib {
@@ -270,6 +349,27 @@
 .theme-stardew .maplibregl-popup-tip {
   border-top-color: var(--sd-panel) !important;
   border-bottom-color: var(--sd-panel) !important;
+}
+
+/* Exit button as a carved wooden plank (raised, with a bottom lip) to match the
+   rest of the Stardew HUD; it presses down onto its lip on tap. */
+.theme-stardew .maplibregl-popup-close-button {
+  border: 2px solid var(--sd-wood-dark);
+  border-radius: 8px;
+  background: #fff6e6;
+  color: var(--sd-ink);
+  font-weight: 700;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.7),
+    0 3px 0 0 #a9793f,
+    0 4px 5px rgba(74, 44, 18, 0.3);
+}
+
+.theme-stardew .maplibregl-popup-close-button:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* Force the pixel font on EVERYTHING inside the themed root. MapLibre hardcodes

@@ -98,7 +98,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
     : null
 
   return (
-    <div className="relative flex max-h-[calc(100dvh-12rem)] w-[272px] max-w-[82vw] flex-col overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a] md:max-h-[calc(100dvh-7rem)]">
+    <div className="plant-popup-card relative flex max-h-[calc(100dvh-12rem)] w-[272px] max-w-[82vw] flex-col overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a] md:max-h-[calc(100dvh-7rem)]">
       <motion.span
         aria-hidden
         className="pointer-events-none absolute inset-0 z-10 rounded-2xl"
@@ -115,7 +115,7 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
         }}
       />
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-3">
-        <h3 className="mb-1.5 flex items-start gap-2 pr-5 text-base font-bold leading-snug text-forest-900 dark:text-forest-50">
+        <h3 className="mb-1.5 flex items-start gap-2 pr-9 text-base font-bold leading-snug text-forest-900 dark:text-forest-50">
           <PlantIcon tree={tree} size={26} className="mt-0.5 shrink-0" />
           <span className="min-w-0 flex-1 break-words">{plantName(tree.name)}</span>
         </h3>
