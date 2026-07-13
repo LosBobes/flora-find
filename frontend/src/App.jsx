@@ -550,6 +550,7 @@ export default function App() {
         onRegister={() => setAuthModal('register')}
         onHelp={() => setTourOpen(true)}
         onOpenProfile={openProfile}
+        hideOnMobile={addMode && !placementConfirmed}
       />
 
       <div className="relative flex min-h-0 flex-1">

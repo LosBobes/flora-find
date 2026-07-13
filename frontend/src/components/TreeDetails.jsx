@@ -5,6 +5,7 @@ import { useI18n } from '../i18n'
 import { usePlantTypes } from '../PlantTypesContext'
 import { formatSeason, seasonMonths } from '../seasons'
 import { cn } from '../lib/utils'
+import { useWikiSummary } from '../lib/wikipedia'
 
 function useDaysAgo() {
   const { t } = useI18n()
@@ -97,6 +98,11 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
     ? `https://${lang === 'sr' ? 'sr' : 'en'}.wikipedia.org/w/index.php?search=${encodeURIComponent(wikiQuery)}`
     : null
 
+  // When a plant has no contributor-written description, fall back to a short
+  // Wikipedia intro so the card isn't blank. Fetched live (display-only); the
+  // hook no-ops when the plant already has a description.
+  const wikiSummary = useWikiSummary(wikiQuery, lang, !tree.description)
+
   return (
     <div className="plant-popup-card relative flex max-h-[calc(100dvh-12rem)] w-[272px] max-w-[82vw] flex-col overflow-hidden rounded-2xl bg-white shadow-card dark:bg-[#12241a] md:max-h-[calc(100dvh-7rem)]">
       <motion.span
@@ -173,8 +179,17 @@ export default function TreeDetails({ tree, currentUser, onEdit, onDelete, onCon
           )}
         </dl>
 
-        {tree.description && (
+        {tree.description ? (
           <p className="mt-2 text-sm text-forest-700 dark:text-forest-200">{desc(tree.description)}</p>
+        ) : (
+          wikiSummary && (
+            <p className="mt-2 text-sm text-forest-700 dark:text-forest-200">
+              {wikiSummary.extract}{' '}
+              <span className="text-[11px] italic text-forest-400 dark:text-forest-500">
+                — {t('fromWikipedia')}
+              </span>
+            </p>
+          )
         )}
 
         {tree.photos?.length > 0 && (

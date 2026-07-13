@@ -83,6 +83,7 @@ const STRINGS = {
     inSeasonBadge: 'In season',
     distanceLabel: 'Distance:',
     learnMore: 'Learn more',
+    fromWikipedia: 'Summary from Wikipedia',
     registeredBy: ({ user, date }) => `Registered by ${user} on ${date}`,
     lastConfirmed: ({ when }) => `Last confirmed ${when}`,
     unknown: 'unknown',
@@ -203,8 +204,8 @@ const STRINGS = {
     // Location precision (placing a plant)
     useMyLocation: 'Use my location',
     dropPinHere: 'Drop pin here',
-    locationPlaced: ({ acc }) => `Pin dropped at your location (±${acc} m). Drag it to fine-tune.`,
-    dragPinHint: 'Tip: drag the pin on the map to place it exactly.',
+    locationPlaced: ({ acc }) => `Pin dropped at your location (±${acc} m). Tap the map to adjust.`,
+    dragPinHint: 'Tip: tap the map to move the pin to the exact spot.',
     confirmSpot: 'Confirm this spot',
     pinLocation: 'Pin location',
 
@@ -339,6 +340,7 @@ const STRINGS = {
     inSeasonBadge: 'U sezoni',
     distanceLabel: 'Udaljenost:',
     learnMore: 'Saznaj više',
+    fromWikipedia: 'Sažetak sa Vikipedije',
     registeredBy: ({ user, date }) => `Dodao/la ${user}, ${date}`,
     lastConfirmed: ({ when }) => `Poslednja potvrda ${when}`,
     unknown: 'nepoznato',
@@ -459,8 +461,8 @@ const STRINGS = {
     // Location precision (placing a plant)
     useMyLocation: 'Koristi moju lokaciju',
     dropPinHere: 'Postavi oznaku ovde',
-    locationPlaced: ({ acc }) => `Oznaka postavljena na tvoju lokaciju (±${acc} m). Prevuci je za precizno podešavanje.`,
-    dragPinHint: 'Savet: prevuci oznaku na mapi da je postaviš tačno.',
+    locationPlaced: ({ acc }) => `Oznaka postavljena na tvoju lokaciju (±${acc} m). Dodirni mapu da je pomeriš.`,
+    dragPinHint: 'Savet: dodirni mapu da postaviš oznaku na tačno mesto.',
     confirmSpot: 'Potvrdi ovo mesto',
     pinLocation: 'Lokacija oznake',
 
