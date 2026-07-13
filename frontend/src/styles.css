@@ -789,3 +789,76 @@
     inset 0 2px 0 rgba(255, 255, 255, 0.35),
     inset 0 -2px 0 rgba(0, 0, 0, 0.35) !important;
 }
+
+/* ---- Map "forest bubble" clusters ----------------------------------------
+   The multi-plant cluster markers (a green grove disc + a count badge). Off the
+   Stardew theme they keep their plain green/white look. Under it they become a
+   carved wooden token: the grove disc gets a chunky cocoa ring lit from the top,
+   and the count reads as a Stardew quantity chip — a cream plank with a dark
+   border and a little drop lip — instead of a flat white pill. */
+.theme-stardew .sd-cluster-bubble {
+  border-radius: 9999px;
+  /* Stacked rings turn the flat green disc into a framed wooden token: a bright
+     cream bevel hugging the art, a chunky cocoa frame, then a near-black outline
+     and a grounded shadow so it sits on the map like a real coin. */
+  box-shadow:
+    0 0 0 2px var(--sd-wood-hi),
+    0 0 0 5px var(--sd-wood-dark),
+    0 0 0 7px var(--sd-wood-edge),
+    0 4px 6px rgba(74, 44, 18, 0.45) !important;
+  /* Warm the grove greens a touch so they sit in the same golden key as the
+     tiles and panels rather than reading as a cooler forest green. */
+  filter: saturate(1.12) hue-rotate(-4deg) brightness(1.03);
+}
+
+.theme-stardew .sd-cluster-count {
+  border-radius: 7px !important;
+  border: 2px solid var(--sd-wood-edge) !important;
+  background: linear-gradient(180deg, var(--sd-panel-hi) 0%, var(--sd-panel) 100%) !important;
+  color: var(--sd-ink) !important;
+  font-weight: 700 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 2px 0 0 var(--sd-wood-dark),
+    0 3px 4px rgba(74, 44, 18, 0.35) !important;
+}
+
+/* ---- Map viewport frame --------------------------------------------------
+   Evoke the in-game Stardew Valley map screen: a warm parchment vignette that
+   darkens the map's edges and a carved wooden inner border around the whole
+   viewport. Pointer-events are off so it never eats a map drag or marker click.
+   (This is atmosphere only — real OSM tiles can't become the hand-painted game
+   map, but the framing + the warmed tiles above sell the storybook feel.) */
+.theme-stardew .maplibregl-map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: inherit;
+  /* Soft golden-brown vignette pooling in from the corners. */
+  background: radial-gradient(
+    120% 100% at 50% 45%,
+    rgba(74, 44, 18, 0) 55%,
+    rgba(74, 44, 18, 0.16) 82%,
+    rgba(58, 33, 12, 0.34) 100%
+  );
+  /* A chunky carved wooden frame hugging the viewport edge. */
+  box-shadow:
+    inset 0 0 0 3px var(--sd-wood),
+    inset 0 0 0 6px var(--sd-wood-edge),
+    inset 0 0 0 8px rgba(244, 216, 160, 0.35),
+    inset 0 0 34px rgba(58, 33, 12, 0.28);
+}
+
+/* On phones the popup fills the screen and the map hides behind it; the frame
+   still reads fine, but tighten the vignette so it doesn't darken the sheet's
+   backdrop edges too heavily. */
+@media (max-width: 767px) {
+  .theme-stardew .maplibregl-map::after {
+    box-shadow:
+      inset 0 0 0 2px var(--sd-wood),
+      inset 0 0 0 4px var(--sd-wood-edge),
+      inset 0 0 24px rgba(58, 33, 12, 0.24);
+  }
+}

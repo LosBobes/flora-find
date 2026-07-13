@@ -14,9 +14,14 @@ export const MAP_THEMES = [
     labelKey: 'themeStardew',
     swatch: '#a7d86e',
     tiles: 'rastertiles/voyager',
-    saturation: 0.4,
-    hueRotate: 8,
-    contrast: 0.12,
+    // Push the pastel Voyager tiles toward a sunny, hand-painted farm-map look:
+    // richer greens (saturation), a warm golden cast (hueRotate), a little more
+    // punch (contrast) and lifted shadows (brightnessMin) so nothing reads as
+    // grey — it should feel like sun-warmed parchment, not a street map.
+    saturation: 0.55,
+    hueRotate: 12,
+    contrast: 0.18,
+    brightnessMin: 0.06,
   },
   { id: 'dark', labelKey: 'themeDark', swatch: '#2b2f33', tiles: 'dark_all', saturation: 0 },
 ]
@@ -111,6 +116,7 @@ export function buildBasemapStyle(themeId) {
           'raster-saturation': theme.saturation,
           ...(theme.hueRotate ? { 'raster-hue-rotate': theme.hueRotate } : {}),
           ...(theme.contrast ? { 'raster-contrast': theme.contrast } : {}),
+          ...(theme.brightnessMin ? { 'raster-brightness-min': theme.brightnessMin } : {}),
         },
       },
     ],

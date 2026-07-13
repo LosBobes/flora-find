@@ -565,9 +565,9 @@ export default function MapView({
               <ForestBubble
                 size={px}
                 title={t('plantsCount', { count: cluster.count })}
-                className="block drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
+                className="sd-cluster-bubble block drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]"
               />
-              <span className="pointer-events-none absolute -right-1 -top-1 flex min-w-[20px] items-center justify-center rounded-full border border-forest-600 bg-white px-1.5 py-0.5 text-[11px] font-bold leading-none text-forest-800 shadow-sm">
+              <span className="sd-cluster-count pointer-events-none absolute -right-1 -top-1 flex min-w-[20px] items-center justify-center rounded-full border border-forest-600 bg-white px-1.5 py-0.5 text-[11px] font-bold leading-none text-forest-800 shadow-sm">
                 {cluster.count}
               </span>
             </motion.div>
