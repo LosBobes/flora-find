@@ -204,6 +204,80 @@ class AreaOut(AreaBase):
     in_season: bool = False
 
 
+class AdminStats(BaseModel):
+    """Top-line counts for the admin dashboard."""
+
+    users: int
+    admins: int
+    trees: int
+    areas: int
+    confirmations: int
+    photos: int
+    plant_types: int
+    flagged_trees: int
+
+
+class AdminUserOut(BaseModel):
+    """A user row for the admin table, with a tally of what they've contributed."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: EmailStr
+    username: str
+    is_admin: bool
+    created_at: datetime
+    tree_count: int = 0
+    area_count: int = 0
+
+
+class AdminUserUpdate(BaseModel):
+    is_admin: bool
+
+
+class AdminTreeRow(BaseModel):
+    """A lean plant row for the admin entries table (no photos payload)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    category: str
+    fruit_type: str
+    hazard: bool
+    lat: float
+    lng: float
+    created_at: datetime
+    owner: UserOut
+    gone_reports: int = 0
+    flagged_gone: bool = False
+
+
+class AdminAreaRow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    category: str
+    fruit_type: str
+    hazard: bool
+    center_lat: float
+    center_lng: float
+    created_at: datetime
+    owner: UserOut
+
+
+class AdminSqlQuery(BaseModel):
+    sql: str = Field(min_length=1, max_length=5000)
+
+
+class AdminSqlResult(BaseModel):
+    columns: list[str]
+    rows: list[list]
+    row_count: int
+    truncated: bool = False
+
+
 class IdentifyConfig(BaseModel):
     """Tells the frontend whether the photo-identification affordance should show."""
 
