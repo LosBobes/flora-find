@@ -10,6 +10,7 @@ import TreeDetails from './components/TreeDetails'
 import TreeForm from './components/TreeForm'
 import PlantFormSheet from './components/PlantFormSheet'
 import ProfilePanel from './components/ProfilePanel'
+import AdminPanel from './components/AdminPanel'
 import AreaDetails from './components/AreaDetails'
 import TopNav from './components/TopNav'
 import { HeaderOverlayBar, OverlayIconButton } from './components/HeaderOverlayBar'
@@ -104,6 +105,7 @@ export default function App() {
   const [areaFormOpen, setAreaFormOpen] = useState(false)
   const [tourOpen, setTourOpen] = useState(false)
   const [profileUserId, setProfileUserId] = useState(null)
+  const [adminOpen, setAdminOpen] = useState(false)
 
   const showPlants = layerView !== 'areas'
   const showAreas = layerView !== 'plants'
@@ -609,6 +611,7 @@ export default function App() {
         onRegister={() => setAuthModal('register')}
         onHelp={() => setTourOpen(true)}
         onOpenProfile={openProfile}
+        onOpenAdmin={() => setAdminOpen(true)}
         overlay={headerOverlay}
       />
 
@@ -929,6 +932,7 @@ export default function App() {
         onLogin={() => setAuthModal('login')}
         onLogout={logout}
         onOpenProfile={openProfile}
+        onOpenAdmin={() => setAdminOpen(true)}
         addMode={addMode}
         onToggleAdd={toggleAddMode}
         nearMe={nearMe}
@@ -949,6 +953,8 @@ export default function App() {
       <Tutorial open={tourOpen} onClose={() => setTourOpen(false)} />
 
       {authModal && <AuthModal mode={authModal} onClose={() => setAuthModal(null)} />}
+
+      {adminOpen && user?.is_admin && <AdminPanel onClose={() => setAdminOpen(false)} />}
     </div>
   )
 }
