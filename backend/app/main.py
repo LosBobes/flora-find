@@ -9,6 +9,7 @@ from .migrations import run_migrations
 from .models import Tree
 from .plant_type_seed import backfill_plant_types, seed_builtin_plant_types
 from .routers import (
+    admin_routes,
     area_routes,
     auth_routes,
     identify_routes,
@@ -71,6 +72,7 @@ app.include_router(tree_routes.router)
 app.include_router(identify_routes.router)
 app.include_router(area_routes.router)
 app.include_router(user_routes.router)
+app.include_router(admin_routes.router)
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 

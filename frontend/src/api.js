@@ -126,6 +126,32 @@ export const api = {
   deletePhoto: (treeId, photoId) =>
     request(`/api/trees/${treeId}/photos/${photoId}`, { method: 'DELETE', auth: true }),
 
+  // Admin-only: the admin panel. Dashboard stats, user management, moderation
+  // over every plant/area, and a read-only SQL console. All require an admin JWT
+  // (the backend returns 403 otherwise).
+  adminStats: () => request('/api/admin/stats', { auth: true }),
+  adminUsers: (q) =>
+    request(`/api/admin/users${q ? `?q=${encodeURIComponent(q)}` : ''}`, { auth: true }),
+  adminSetUserRole: (userId, isAdmin) =>
+    request(`/api/admin/users/${userId}`, { method: 'PATCH', body: { is_admin: isAdmin }, auth: true }),
+  adminDeleteUser: (userId) =>
+    request(`/api/admin/users/${userId}`, { method: 'DELETE', auth: true }),
+  adminTrees: (params = {}) => {
+    const qs = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '' && value !== false) qs.set(key, value)
+    }
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return request(`/api/admin/trees${suffix}`, { auth: true })
+  },
+  adminDeleteTree: (treeId) =>
+    request(`/api/admin/trees/${treeId}`, { method: 'DELETE', auth: true }),
+  adminAreas: (q) =>
+    request(`/api/admin/areas${q ? `?q=${encodeURIComponent(q)}` : ''}`, { auth: true }),
+  adminDeleteArea: (areaId) =>
+    request(`/api/admin/areas/${areaId}`, { method: 'DELETE', auth: true }),
+  adminSql: (sql) => request('/api/admin/sql', { method: 'POST', body: { sql }, auth: true }),
+
   // Admin-only: export every plant inside a map rectangle. Returns the file as a
   // Blob plus a suggested filename and how many plants it contains.
   exportArea: async (bounds, format = 'geojson') => {

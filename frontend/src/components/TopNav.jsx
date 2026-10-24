@@ -71,7 +71,7 @@ function HelpButton({ onClick, label }) {
   )
 }
 
-export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpenProfile, overlay }) {
+export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpenProfile, onOpenAdmin, overlay }) {
   const { t } = useI18n()
   const { user, logout } = useAuth()
 
@@ -130,9 +130,14 @@ export default function TopNav({ filterProps, onLogin, onRegister, onHelp, onOpe
                   {t('hi', { username: user.username })}
                 </button>
                 {user.is_admin && (
-                  <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                  <button
+                    type="button"
+                    onClick={onOpenAdmin}
+                    title={t('adminPanel')}
+                    className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white transition hover:bg-orange-600"
+                  >
                     {t('admin')}
-                  </span>
+                  </button>
                 )}
                 <button
                   type="button"

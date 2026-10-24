@@ -108,6 +108,7 @@ export default function MobileBottomBar({
   onLogin,
   onLogout,
   onOpenProfile,
+  onOpenAdmin,
   addMode,
   onToggleAdd,
   nearMe,
@@ -269,6 +270,21 @@ export default function MobileBottomBar({
             >
               {t('myCatalog')}
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenAdmin?.()
+                  setPanel(null)
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition active:scale-[0.99]"
+              >
+                <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+                  {t('admin')}
+                </span>
+                {t('adminPanel')}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {

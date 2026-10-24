@@ -1066,3 +1066,127 @@ def test_identify_rejects_unsupported_type(monkeypatch):
         headers=auth_headers(token),
     )
     assert resp.status_code == 415
+
+
+# --- admin panel API -------------------------------------------------------
+
+
+def test_admin_endpoints_require_admin():
+    # Anonymous.
+    assert client.get("/api/admin/stats").status_code == 401
+    # Authenticated non-admin.
+    token = register()["access_token"]
+    assert client.get("/api/admin/stats", headers=auth_headers(token)).status_code == 403
+    for path in ("/api/admin/users", "/api/admin/trees", "/api/admin/areas"):
+        assert client.get(path, headers=auth_headers(token)).status_code == 403
+    assert client.post(
+        "/api/admin/sql", json={"sql": "SELECT 1"}, headers=auth_headers(token)
+    ).status_code == 403
+
+
+def test_admin_stats_and_user_listing():
+    token = register()["access_token"]
+    make_admin()
+    make_tree(token)
+    make_area(token)
+
+    stats = client.get("/api/admin/stats", headers=auth_headers(token)).json()
+    assert stats["users"] == 1
+    assert stats["admins"] == 1
+    assert stats["trees"] == 1
+    assert stats["areas"] == 1
+
+    users = client.get("/api/admin/users", headers=auth_headers(token)).json()
+    assert len(users) == 1
+    assert users[0]["tree_count"] == 1
+    assert users[0]["area_count"] == 1
+    assert users[0]["is_admin"] is True
+
+
+def test_admin_can_toggle_role_but_not_self_demote():
+    admin_token = register(email="ana@example.com", username="ana")["access_token"]
+    make_admin("ana@example.com")
+    other = register(email="bob@example.com", username="bob", password="secret-pass-2")
+    other_id = other["user"]["id"]
+    admin_id = client.get("/api/auth/me", headers=auth_headers(admin_token)).json()["id"]
+
+    # Promote bob.
+    resp = client.patch(
+        f"/api/admin/users/{other_id}",
+        json={"is_admin": True},
+        headers=auth_headers(admin_token),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["is_admin"] is True
+
+    # Admin cannot strip their own admin flag (lockout guard).
+    resp = client.patch(
+        f"/api/admin/users/{admin_id}",
+        json={"is_admin": False},
+        headers=auth_headers(admin_token),
+    )
+    assert resp.status_code == 400
+
+
+def test_admin_delete_tree_overrides_ownership():
+    owner_token = register(email="ana@example.com", username="ana")["access_token"]
+    tree = make_tree(owner_token)
+    admin = register(email="mod@example.com", username="mod", password="secret-pass-2")
+    make_admin("mod@example.com")
+
+    resp = client.delete(
+        f"/api/admin/trees/{tree['id']}", headers=auth_headers(admin["access_token"])
+    )
+    assert resp.status_code == 204
+    assert client.get("/api/trees").json() == []
+
+
+def test_admin_delete_user_cascades():
+    token = register(email="ana@example.com", username="ana")["access_token"]
+    make_admin("ana@example.com")
+    victim = register(email="bob@example.com", username="bob", password="secret-pass-2")
+    victim_token = victim["access_token"]
+    victim_id = victim["user"]["id"]
+    make_tree(victim_token, name="Bob's tree")
+
+    resp = client.delete(
+        f"/api/admin/users/{victim_id}", headers=auth_headers(token)
+    )
+    assert resp.status_code == 204
+    assert client.get("/api/trees").json() == []
+    users = client.get("/api/admin/users", headers=auth_headers(token)).json()
+    assert [u["username"] for u in users] == ["ana"]
+
+
+def test_admin_cannot_delete_self():
+    token = register()["access_token"]
+    make_admin()
+    me = client.get("/api/auth/me", headers=auth_headers(token)).json()
+    resp = client.delete(f"/api/admin/users/{me['id']}", headers=auth_headers(token))
+    assert resp.status_code == 400
+
+
+def test_admin_sql_console_reads_and_rejects_writes():
+    token = register(email="ana@example.com", username="ana")["access_token"]
+    make_admin()
+    make_tree(token)
+
+    ok = client.post(
+        "/api/admin/sql",
+        json={"sql": "SELECT id, name FROM trees"},
+        headers=auth_headers(token),
+    )
+    assert ok.status_code == 200, ok.text
+    body = ok.json()
+    assert body["columns"] == ["id", "name"]
+    assert body["row_count"] == 1
+
+    for bad in ("DELETE FROM trees", "UPDATE trees SET name='x'", "DROP TABLE trees",
+                "SELECT 1; DELETE FROM trees", "INSERT INTO users VALUES (1)"):
+        resp = client.post(
+            "/api/admin/sql", json={"sql": bad}, headers=auth_headers(token)
+        )
+        assert resp.status_code == 400, f"{bad!r} should be rejected"
+
+    # The trees table still has its row (nothing was mutated).
+    assert len(client.get("/api/trees").json()) == 1
