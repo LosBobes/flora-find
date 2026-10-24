@@ -2,28 +2,39 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 const STORAGE_KEY = 'florafind_map_settings'
 
-// Keyless CARTO raster basemaps. `saturation: -1` fully desaturates a tileset.
-// `stardew` warms and saturates the pastel Voyager tiles into a cozy farm-game
-// look and, like `dark`, re-skins the whole UI (see the class toggle below).
+// Every theme re-tints the same keyless OpenStreetMap raster tiles with MapLibre's
+// raster paint properties (CARTO's basemaps now require an API key). `saturation: -1`
+// fully desaturates the tiles. `stardew` warms and saturates them into a cozy
+// farm-game look and, like `dark`, re-skins the whole UI (see the class toggle below).
 export const MAP_THEMES = [
-  { id: 'mono', labelKey: 'themeMono', swatch: '#c9d2c9', tiles: 'light_all', saturation: -1 },
-  { id: 'light', labelKey: 'themeLight', swatch: '#eae6dc', tiles: 'light_all', saturation: 0 },
-  { id: 'voyager', labelKey: 'themeVoyager', swatch: '#d7e7c9', tiles: 'rastertiles/voyager', saturation: 0 },
+  { id: 'mono', labelKey: 'themeMono', swatch: '#c9d2c9', saturation: -1, brightnessMin: 0.08 },
+  // A softer, washed-out take on the standard map so markers stay the focus.
+  { id: 'light', labelKey: 'themeLight', swatch: '#eae6dc', saturation: -0.45, brightnessMin: 0.12 },
+  { id: 'voyager', labelKey: 'themeVoyager', swatch: '#d7e7c9', saturation: 0 },
   {
     id: 'stardew',
     labelKey: 'themeStardew',
     swatch: '#a7d86e',
-    tiles: 'rastertiles/voyager',
-    // Push the pastel Voyager tiles toward a sunny, hand-painted farm-map look:
-    // richer greens (saturation), a warm golden cast (hueRotate), a little more
-    // punch (contrast) and lifted shadows (brightnessMin) so nothing reads as
-    // grey — it should feel like sun-warmed parchment, not a street map.
-    saturation: 0.55,
+    // Push the tiles toward a sunny, hand-painted farm-map look: richer greens
+    // (saturation), a warm golden cast (hueRotate), a little more punch
+    // (contrast) and lifted shadows (brightnessMin) so nothing reads as grey —
+    // it should feel like sun-warmed parchment, not a street map.
+    saturation: 0.3,
     hueRotate: 12,
-    contrast: 0.18,
+    contrast: 0.12,
     brightnessMin: 0.06,
   },
-  { id: 'dark', labelKey: 'themeDark', swatch: '#2b2f33', tiles: 'dark_all', saturation: 0 },
+  // Swapping brightness min/max inverts lightness; rotating hue 180° then puts
+  // parks, water and roads back on roughly their original colours.
+  {
+    id: 'dark',
+    labelKey: 'themeDark',
+    swatch: '#2b2f33',
+    saturation: -0.35,
+    hueRotate: 180,
+    brightnessMin: 0.92,
+    brightnessMax: 0.12,
+  },
 ]
 
 // Marker base diameter in px per size choice; selected markers scale up from here.
@@ -98,13 +109,10 @@ export function buildBasemapStyle(themeId) {
     sources: {
       basemap: {
         type: 'raster',
-        tiles: ['a', 'b', 'c'].map(
-          (s) => `https://${s}.basemaps.cartocdn.com/${theme.tiles}/{z}/{x}/{y}.png`,
-        ),
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256,
-        maxzoom: 20,
-        attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+        maxzoom: 19,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
     },
     layers: [
@@ -117,6 +125,7 @@ export function buildBasemapStyle(themeId) {
           ...(theme.hueRotate ? { 'raster-hue-rotate': theme.hueRotate } : {}),
           ...(theme.contrast ? { 'raster-contrast': theme.contrast } : {}),
           ...(theme.brightnessMin ? { 'raster-brightness-min': theme.brightnessMin } : {}),
+          ...(theme.brightnessMax !== undefined ? { 'raster-brightness-max': theme.brightnessMax } : {}),
         },
       },
     ],
