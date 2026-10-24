@@ -72,7 +72,10 @@ function PanToSelected({ tree }) {
         // appears to centre. Measure whatever chrome overlaps the map's bottom.
         let bottomChrome = 0
         const chromeEl = document.querySelector('[data-map-bottom-chrome]')
-        if (chromeEl) {
+        // On desktop the bar is `md:hidden` (display:none) and its rect is all
+        // zeros — reading b.top = 0 would claim the whole map is covered and
+        // shove the popup off the top edge, so ignore chrome that isn't rendered.
+        if (chromeEl && chromeEl.getClientRects().length) {
           const b = chromeEl.getBoundingClientRect()
           bottomChrome = Math.max(0, cRect.bottom - b.top)
         }
